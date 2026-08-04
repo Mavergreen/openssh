@@ -1,0 +1,17 @@
+# Build products / fetched inputs
+/VERSION
+/UPSTREAM_VERSION
+/dist/
+build/work/
+*.pkg
+*.tar.gz
+*.tar.gz.asc
+*.a
+
+# Brainstorm/spec/plan docs are tracked out-of-band
+docs/
+
+# macOS cruft
+.DS_Store
+._*
+.superpowers/
