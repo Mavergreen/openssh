@@ -115,9 +115,6 @@ jobs:
       - name: Run repo tests
         run: sh "$MSC_SCRIPTS/run-repo-tests.sh"
 
-      - name: Artifact conformance
-        run: sh "$MSC_SCRIPTS/check-artifact-conformance.sh" dist
-
       # Sign the PRODUCT pkg + render the single appcast.xml -- only when this run publishes. Fork PRs
       # resolve release=no, so they never reach this step and never touch secrets. The enclosure points
       # at the release-asset download URL; the feed itself is served from releases/latest/download.
@@ -150,6 +147,25 @@ jobs:
           set -eu
           NOTES="$(sh build/release-notes-file.sh "${{ steps.ver.outputs.tag }}" "${{ steps.ver.outputs.full }}")"
           cp "$NOTES" dist/RELEASE_NOTES.md
+
+      # Conformance: do the artifacts we are about to publish agree with each other and with the
+      # family? Each piece is checked somewhere already -- the compat guard reads binaries,
+      # set_install_floor stamps a floor, sign_and_appcast signs -- but nothing asserted they agree.
+      # Gated like the signing step and run AFTER it: the checker cross-validates appcast<->pkg<->asset
+      # and reads the fact stream on STDIN (a positional dist arg is ignored), so it needs the rendered
+      # dist/appcast.xml. The floor-less product pkg's minimum lives in that appcast.
+      - name: Artifact conformance
+        if: steps.ver.outputs.release == 'yes'
+        run: |
+          sh "$MSC_SCRIPTS/artifact-facts.sh" dist "${{ steps.ver.outputs.full }}" \
+            | sh "$MSC_SCRIPTS/check-artifact-conformance.sh"
+
+      # Behavior gate: a client on the previous release must SEE this as an upgrade -- a numeric
+      # sparkle:version ordering strictly after the last published *-mavericks.N tag. This single-line
+      # product has one tag line, so no --upstream-glob is needed (the script defaults to *-mavericks.*).
+      - name: Assert appcast upgradeable
+        if: steps.ver.outputs.release == 'yes'
+        run: sh "$MSC_SCRIPTS/assert_appcast_upgradeable.sh" --appcast dist/appcast.xml --version "${{ steps.ver.outputs.full }}"
 
       - uses: actions/upload-artifact@v7
         with:
