@@ -1,0 +1,22 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": { "major": 3, "minor": 25, "patch": 0 },
+  "configurePresets": [
+    {
+      "name": "native",
+      "displayName": "native -- build the OpenSSH updater on OS X 10.9",
+      "binaryDir": "build/updater",
+      "cacheVariables": { "MAVERICKS_EXPECTED_MODE": "native" }
+    },
+    {
+      "name": "cross",
+      "displayName": "cross -- build the OpenSSH updater for 10.9 on a modern host",
+      "binaryDir": "build/updater",
+      "cacheVariables": { "MAVERICKS_EXPECTED_MODE": "cross" }
+    }
+  ],
+  "buildPresets": [
+    { "name": "native", "configurePreset": "native" },
+    { "name": "cross",  "configurePreset": "cross" }
+  ]
+}

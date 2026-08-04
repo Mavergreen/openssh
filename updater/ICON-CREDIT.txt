@@ -1,0 +1,7 @@
+Updater icon: PLACEHOLDER. OpenSSHUpdater.icns is a solid teal placeholder
+generated at build time from a system application-icon base (via sips into an
+.iconset, then `iconutil -c icns`). It carries no real artwork and is meant to be
+replaced with a proper OpenSSH-for-Mavericks updater icon before release.
+
+No third-party artwork is embedded, so no attribution is required. Noted here for
+provenance and as a reminder to swap in the real icon.

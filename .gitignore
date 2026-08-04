@@ -3,6 +3,7 @@
 /UPSTREAM_VERSION
 /dist/
 build/work/
+build/updater/
 *.pkg
 *.tar.gz
 *.tar.gz.asc
