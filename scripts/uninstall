@@ -1,0 +1,17 @@
+#!/bin/sh
+# Reverse the replacement: remove our symlinks and restore the backed-up originals.
+# Honors $ROOT for testing (default /). POSIX /bin/sh.
+set -eu
+ROOT="${ROOT:-/}"
+BK="$ROOT/var/backups/vanilla-openssh"
+
+PATHS="usr/bin/ssh usr/bin/scp usr/bin/sftp usr/bin/ssh-add usr/bin/ssh-agent usr/bin/ssh-keygen usr/bin/ssh-keyscan usr/sbin/sshd usr/libexec/sftp-server usr/libexec/ssh-keysign usr/libexec/ssh-pkcs11-helper usr/libexec/ssh-sk-helper usr/libexec/sshd-session usr/libexec/sshd-keygen-wrapper etc/ssh_config etc/sshd_config etc/moduli"
+
+for rel in $PATHS; do
+  if [ -L "$ROOT/$rel" ]; then rm -f "$ROOT/$rel"; fi
+  if [ -e "$BK/$rel" ]; then
+    mkdir -p "$ROOT/$(dirname "$rel")"
+    cp -p "$BK/$rel" "$ROOT/$rel"
+  fi
+done
+echo "restored the original system OpenSSH from $BK"

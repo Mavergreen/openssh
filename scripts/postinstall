@@ -1,0 +1,21 @@
+#!/bin/sh
+# Replacement pkg postinstall: symlink the system OpenSSH paths (binaries + configs) to our
+# /usr/local copies, so the built-in launchd sshd job and the default PATH use the modern build.
+# Honors $ROOT for testing (default /). POSIX /bin/sh.
+set -eu
+ROOT="${ROOT:-/}"
+
+link() {   # $1 = system rel path, $2 = target under /usr/local
+  # The link target resolves within $ROOT: it is the plain absolute "/usr/local/..."
+  # when ROOT=/ (correct on a real install) and "$ROOT/usr/local/..." under a fake
+  # root, so tests never depend on the host's real /usr/local.
+  mkdir -p "$ROOT/$(dirname "$1")"
+  ln -sfn "${ROOT%/}/$2" "$ROOT/$1"
+}
+
+for name in ssh scp sftp ssh-add ssh-agent ssh-keygen ssh-keyscan; do link "usr/bin/$name" "usr/local/bin/$name"; done
+link "usr/sbin/sshd" "usr/local/sbin/sshd"
+for name in sftp-server ssh-keysign ssh-pkcs11-helper ssh-sk-helper sshd-session sshd-keygen-wrapper; do
+  link "usr/libexec/$name" "usr/local/libexec/$name"
+done
+for name in ssh_config sshd_config moduli; do link "etc/$name" "usr/local/etc/$name"; done
