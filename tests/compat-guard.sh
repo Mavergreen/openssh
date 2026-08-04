@@ -13,14 +13,10 @@
 # gate is CI running it against the CI-built staging. POSIX /bin/sh.
 set -eu
 SELF="$(cd "$(dirname "$0")" && pwd)"
-REPO="$(cd "$SELF/.." && pwd)"
-# versions.sh anchors its own helpers (msc.sh, derive-upstream-version.sh) on `dirname "$0"`, so it
-# must be sourced with $0 resolving to build/ -- do that via a build/-resident stub. Sourcing it
-# straight from tests/ would make it look for tests/msc.sh and abort. Capture its exported env
-# (WORK, PREFIX, MSC) into this shell.
-eval "$(cd "$REPO/build" && sh -c '. ./versions.sh >/dev/null 2>&1 || exit 1
-  printf "WORK=%s\nPREFIX=%s\nMSC=%s\n" "$WORK" "$PREFIX" "${MSC:-}"' \
-  | sed 's/^/export /')"
+REPO_ROOT="$(cd "$SELF/.." && pwd)"; export REPO_ROOT
+# versions.sh honours a pre-set REPO_ROOT (golang's ${REPO_ROOT:=...} idiom), so a test under
+# tests/ can source it plainly; it exports WORK, PREFIX, and MSC.
+. "$REPO_ROOT/build/versions.sh"
 : "${MSC:?mavericks-shared-cmake not found; install it -- see its README}"
 
 STAGE="${STAGE:-$WORK/staging}"
