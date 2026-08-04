@@ -1,0 +1,24 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["github>ModernMavericks/shared-cmake"],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "OpenSSH portable, pinned in upstream tag form (V_x_y_Pz). Stored as the tag so Renovate needs no separator conversion; build/derive-upstream-version.sh produces the dotted version.",
+      "managerFilePatterns": ["/^components/openssh/version$/"],
+      "matchStrings": ["^(?<currentValue>V_[0-9_P]+)\\s*$"],
+      "depNameTemplate": "openssh/openssh-portable",
+      "datasourceTemplate": "github-tags",
+      "versioningTemplate": "regex:^V_(?<major>\\d+)_(?<minor>\\d+)_P(?<patch>\\d+)$"
+    },
+    {
+      "customType": "regex",
+      "description": "LibreSSL portable static crypto ingredient.",
+      "managerFilePatterns": ["/^build/versions.sh$/"],
+      "matchStrings": ["LIBRESSL_VERSION=(?<currentValue>\\S+)\\s+# renovate: libressl/portable"],
+      "depNameTemplate": "libressl/portable",
+      "datasourceTemplate": "github-tags",
+      "extractVersionTemplate": "^v?(?<version>.+)$"
+    }
+  ]
+}
