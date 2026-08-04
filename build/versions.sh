@@ -7,7 +7,7 @@
 : "${REPO_ROOT:=$(cd "$(dirname "$0")/.." && pwd)}"; export REPO_ROOT
 
 # --- Ingredient pins (Renovate customManagers key on these lines) ---
-LIBRESSL_VERSION=4.3.2            # renovate: libressl/portable
+LIBRESSL_VERSION=3.8.2            # renovate: libressl/portable
 export LIBRESSL_VERSION
 
 # --- Derived upstream (written by derive-upstream-version.sh) ---
