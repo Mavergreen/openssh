@@ -5,6 +5,8 @@ setup() {
   REPO="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
 }
 
+teardown() { rm -f "$REPO/UPSTREAM_VERSION"; }
+
 @test "V_9_9_P2 derives to 9.9p2" {
   run sh "$REPO/build/derive-upstream-version.sh" --print V_9_9_P2
   [ "$status" -eq 0 ]
@@ -15,6 +17,17 @@ setup() {
   run sh "$REPO/build/derive-upstream-version.sh" --print V_10_1_P1
   [ "$status" -eq 0 ]
   [ "$output" = "10.1p1" ]
+}
+
+@test "V_9_9 (no pN suffix) derives to 9.9" {
+  run sh "$REPO/build/derive-upstream-version.sh" --print V_9_9
+  [ "$status" -eq 0 ]
+  [ "$output" = "9.9" ]
+}
+
+@test "a malformed tag is rejected" {
+  run sh "$REPO/build/derive-upstream-version.sh" --print not-a-tag
+  [ "$status" -ne 0 ]
 }
 
 @test "writes UPSTREAM_VERSION from components/openssh/version when no arg" {

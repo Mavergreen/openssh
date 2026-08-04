@@ -1,6 +1,7 @@
 #!/bin/sh
-# Master versions/paths file, sourced by the build scripts. Pins every ingredient baked into
-# the artifact so Renovate + repackage-on-ingredient-bump can track them. POSIX /bin/sh.
+# Master versions/paths file. Source this from a script that lives in build/ (its $0 anchors
+# REPO_ROOT, matching the golang template). Pins every ingredient baked into the artifact so
+# Renovate + repackage-on-ingredient-bump can track them. POSIX /bin/sh.
 set -eu
 VERSIONS_SELF="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$VERSIONS_SELF/.." && pwd)"; export REPO_ROOT
