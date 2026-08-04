@@ -1,0 +1,20 @@
+name: repackage-on-ingredient-bump
+
+# When LibreSSL or the vendored patches change (not the OpenSSH upstream), dispatch a
+# -mavericks.(N+1) repackage via the shared reusable workflow. The OpenSSH upstream itself is
+# the N=1 auto-cut path in release.yml (push to main), so it's excluded here.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - build/versions.sh
+      - patches/**
+
+jobs:
+  repackage:
+    permissions:
+      actions: write
+    uses: ModernMavericks/shared-cmake/.github/workflows/repackage-on-ingredient-bump.yml@v1
+    with:
+      own-upstream-paths: components/openssh/version
