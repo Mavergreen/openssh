@@ -57,9 +57,11 @@ build_libressl() {
   echo "$WORK/libressl-install"
 }
 
-# Auto-run only when executed directly. When sourced with --source-only, expose the functions and
-# return without building. The $0-basename check keeps a sourced-without-args invocation from
-# kicking off a build too.
-[ "${1:-}" = "--source-only" ] && return 0 2>/dev/null || true
+# Expose the functions without building when invoked with --source-only (whether sourced by a
+# test or run directly): `return` succeeds when sourced, `exit 0` when executed. Otherwise this
+# script was executed to actually build, so source the pins and run.
+case "${1:-}" in
+  --source-only) return 0 2>/dev/null || exit 0 ;;
+esac
 . "$(cd "$(dirname "$0")" && pwd)/versions.sh"
 build_libressl
