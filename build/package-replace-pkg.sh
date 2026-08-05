@@ -28,6 +28,7 @@ sh "$MSC_SCRIPTS/set_install_floor.sh" \
   --title "Make OpenSSH for Mavericks the system default" \
   --component "$comp" --min-os 10.9.5 \
   --out "$OUT/OpenSSH-System-Replace-${FULL}.pkg"
+rm -f "$comp"   # intermediate component (no floor): only the floored product archive ships
 
 sh "$MSC_SCRIPTS/build-info.sh" "$OUT/build-info-replace.txt" \
   variant=replace upstream="$OPENSSH_VERSION" full="$FULL"
