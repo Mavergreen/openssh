@@ -1,7 +1,15 @@
-Updater icon: PLACEHOLDER. OpenSSHUpdater.icns is a solid teal placeholder
-generated at build time from a system application-icon base (via sips into an
-.iconset, then `iconutil -c icns`). It carries no real artwork and is meant to be
-replaced with a proper OpenSSH-for-Mavericks updater icon before release.
+Updater icon: the GENERIC macOS application icon, on purpose.
 
-No third-party artwork is embedded, so no attribution is required. Noted here for
-provenance and as a reminder to swap in the real icon.
+OpenSSHUpdater ships no bundled icon (empty CFBundleIconFile), so macOS renders it with the
+standard generic application icon. This is the explicit opt-in: CMakeLists.txt passes
+ALLOW_GENERIC to mavericks_add_updater_app (equivalently -DMAVERICKS_ALLOW_GENERIC_ICON=ON).
+
+Why generic rather than bespoke artwork: OpenSSH has no official logo, and the marks one might
+reach for are encumbered -- the OpenBSD "Puffy" mascot is license-restricted (like Docker's whale
+that mavericks-container-tools steered around), and other SSH clients' icons (PuTTY, etc.) are
+their own copyright. Rather than commission original art for a CLI updater, we ship the generic
+system icon and embed no third-party artwork at all -- no Apple, OpenBSD, or vendor mark, no
+attribution requirement.
+
+To give it a real icon later: drop a proper .icns in this dir and pass ICON <path> instead of
+ALLOW_GENERIC in CMakeLists.txt.

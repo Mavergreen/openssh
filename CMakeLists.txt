@@ -18,7 +18,7 @@ mavericks_add_updater_app(
   PRODUCT_NAME "Mavericks OpenSSH"
   BUNDLE_ID dev.modernmavericks.OpenSSHUpdater
   FEED_URL "https://github.com/ModernMavericks/openssh/releases/latest/download/appcast.xml"
-  ICON "${CMAKE_SOURCE_DIR}/updater/OpenSSHUpdater.icns"
+  ALLOW_GENERIC   # ship the generic macOS app icon on purpose (no bespoke artwork; no Apple/OpenBSD mark)
   VERSION "${MAVOSSH_VERSION}"
   LOG_PREFIX "MavOpenSSHUpdater"
   CONFIRM_TITLE "Mavericks OpenSSH updated"
