@@ -18,7 +18,7 @@ verify_openssh_signature() {
   gpg --homedir "$ring" --import "$FETCH_KEY" >/dev/null 2>&1 || { echo "FATAL: cannot import signing key" >&2; return 1; }
   gpg --homedir "$ring" --trust-model always --verify "$2" "$1" >/dev/null 2>&1 \
     || { echo "FATAL: OpenSSH signature verification failed" >&2; return 1; }
-  echo "verified OpenSSH signature for $1"
+  echo "verified OpenSSH signature for $1" >&2   # progress -> stderr; fetch_openssh's stdout must be ONLY the src path (it is captured)
 }
 
 fetch_openssh() {

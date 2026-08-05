@@ -17,7 +17,7 @@ verify_libressl_tarball() {
   [ -n "$2" ] || { echo "FATAL: no expected sha256 for LibreSSL" >&2; return 1; }
   _got="$(shasum -a 256 "$1" | awk '{print $1}')"
   [ "$_got" = "$2" ] || { echo "FATAL: LibreSSL sha256 mismatch: got $_got want $2" >&2; return 1; }
-  echo "verified LibreSSL tarball ($_got)"
+  echo "verified LibreSSL tarball ($_got)" >&2   # progress -> stderr (build_libressl's stdout is captured; must be ONLY the prefix path)
 }
 
 libressl_expected_sha() {
@@ -49,11 +49,13 @@ build_libressl() {
   verify_libressl_tarball "$tb" "$(libressl_expected_sha)"
   rm -rf "$WORK/libressl-${LIBRESSL_VERSION}"
   tar -C "$WORK" -xzf "$tb"
+  # configure/make/make install emit to stdout; send it all to stderr so the ONLY thing this
+  # function writes to stdout is the final prefix path (build-openssh.sh captures it).
   ( cd "$WORK/libressl-${LIBRESSL_VERSION}"
     CFLAGS="-mmacosx-version-min=10.9 -isysroot $SDK -O2" \
     ./configure --prefix="$WORK/libressl-install" --enable-static --disable-shared --disable-asm
     make -j"$(sysctl -n hw.ncpu)"
-    make install )
+    make install ) >&2
   echo "$WORK/libressl-install"
 }
 

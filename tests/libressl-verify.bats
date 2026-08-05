@@ -25,3 +25,9 @@ teardown() { rm -rf "$TMP"; }
   run verify_libressl_tarball "$TMP/fake.tar.gz" "$GOOD_SHA"
   [ "$status" -eq 0 ]
 }
+
+@test "success writes NOTHING to stdout (progress goes to stderr; build_libressl's stdout is the captured prefix)" {
+  # build-openssh.sh does LIBRESSL="$(build-libressl.sh)", so any stray stdout corrupts the path.
+  out="$(verify_libressl_tarball "$TMP/fake.tar.gz" "$GOOD_SHA" 2>/dev/null)"
+  [ -z "$out" ]
+}
