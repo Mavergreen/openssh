@@ -51,9 +51,14 @@ build_libressl() {
   tar -C "$WORK" -xzf "$tb"
   # configure/make/make install emit to stdout; send it all to stderr so the ONLY thing this
   # function writes to stdout is the final prefix path (build-openssh.sh captures it).
+  # Cross-build x86_64/10.9 on a modern arm64 runner: -arch x86_64 (the 10.9 SDK is Intel-only, so
+  # a default arm64 compile "cannot create executables") + --host (cross mode: don't run x86_64
+  # test binaries; no Rosetta dependency).
   ( cd "$WORK/libressl-${LIBRESSL_VERSION}"
-    CFLAGS="-mmacosx-version-min=10.9 -isysroot $SDK -O2" \
-    ./configure --prefix="$WORK/libressl-install" --enable-static --disable-shared --disable-asm
+    CFLAGS="-arch x86_64 -mmacosx-version-min=10.9 -isysroot $SDK -O2" \
+    LDFLAGS="-arch x86_64 -mmacosx-version-min=10.9 -isysroot $SDK" \
+    ./configure --host=x86_64-apple-darwin \
+      --prefix="$WORK/libressl-install" --enable-static --disable-shared --disable-asm
     make -j"$(sysctl -n hw.ncpu)"
     make install ) >&2
   echo "$WORK/libressl-install"

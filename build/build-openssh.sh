@@ -18,11 +18,16 @@ STAGE="${STAGE:-$WORK/staging}"
 rm -rf "$STAGE"; mkdir -p "$STAGE"
 
 APPLE_DEFS="-D__APPLE_KEYCHAIN__ -D__APPLE_MEMBERSHIP__ -D__APPLE_LAUNCHD__ -D__APPLE_SANDBOX_NAMED_EXTERNAL__"
+# We cross-build the x86_64 / 10.9 product on a modern arm64 runner, so the arch is explicit
+# (-arch x86_64) and configure runs in cross mode (--host) -- the 10.9 SDK is Intel-only, so a
+# default (arm64) compile "cannot create executables", and cross mode avoids needing to RUN
+# x86_64 test binaries (no Rosetta dependency).
 ( cd "$SRC"
   CC="$CC" \
-  CFLAGS="-mmacosx-version-min=10.9 -isysroot $SDK -I$LIBRESSL/include $APPLE_DEFS" \
-  LDFLAGS="-mmacosx-version-min=10.9 -isysroot $SDK -L$LIBRESSL/lib -framework CoreFoundation -framework Security -framework DirectoryService -lbsm" \
+  CFLAGS="-arch x86_64 -mmacosx-version-min=10.9 -isysroot $SDK -I$LIBRESSL/include $APPLE_DEFS" \
+  LDFLAGS="-arch x86_64 -mmacosx-version-min=10.9 -isysroot $SDK -L$LIBRESSL/lib -framework CoreFoundation -framework Security -framework DirectoryService -lbsm" \
   ./configure \
+    --host=x86_64-apple-darwin \
     --prefix="$PREFIX" --sysconfdir="$SYSCONFDIR" \
     --with-ssl-dir="$LIBRESSL" \
     --with-pam --with-audit=bsm --with-kerberos5=/usr \
