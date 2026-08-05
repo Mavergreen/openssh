@@ -3,10 +3,13 @@
 # 10.9, no post-10.9 undefined imports/selectors). Delegates to the INSTALLED
 # mavericks-shared-cmake assert_binary_compatible.sh (which takes the binaries positionally and
 # hardcodes the x86_64/min-10.9 asserts + the post-10.9 symbol/selector denials -- there is no
-# <floor> <arch> argument to pass). Mirrors mavericks-golang/tests/compat-guard.sh, which invokes
-#   MAVERICKS_REQUIRE_DEFINED_SYMBOLS='_clock_gettime' sh "$MSC/assert_binary_compatible.sh" "$@"
-# so a 10.9-linked binary must DEFINE the legacy-support _clock_gettime shim (else its own
-# _clock_gettime import would read as a post-10.9 leak).
+# <floor> <arch> argument to pass).
+#
+# Unlike mavericks-golang (whose Go runtime USES clock_gettime, a 10.12 symbol, and therefore ships
+# the macports-legacy-support shim that DEFINES it), OpenSSH -- like Wowfunhappy's native-10.9 build
+# -- does not use clock_gettime: configured against the 10.9 SDK it falls back to gettimeofday. So we
+# do NOT require _clock_gettime to be defined (no legacy-support shim is linked); the guard just
+# proves each shipped binary is x86_64 / min-10.9 with no post-10.9 imports or selectors.
 #
 # Exits 77 (SKIP) when the staging tree isn't built yet: this test lives in tests/*.sh and the
 # shared runner globs those, so in isolation (nothing built) it must SKIP, never fail. The real
@@ -33,6 +36,5 @@ for b in "$STAGE$PREFIX"/bin/* "$STAGE$PREFIX"/sbin/* "$STAGE$PREFIX"/libexec/*;
 done
 [ "$#" -gt 0 ] || { echo "no Mach-O binaries under $STAGE$PREFIX -- skipping"; exit 77; }
 
-MAVERICKS_REQUIRE_DEFINED_SYMBOLS='_clock_gettime' \
-  sh "$MSC/assert_binary_compatible.sh" "$@"
+sh "$MSC/assert_binary_compatible.sh" "$@"
 echo "ok: all shipped binaries are 10.9-safe"
