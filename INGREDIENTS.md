@@ -10,7 +10,7 @@ repackage via `repackage-on-ingredient-bump`.
 | LibreSSL portable (static crypto) | `build/versions.sh` `LIBRESSL_VERSION` | ✅ github-tags `libressl/portable` | repackage `-mavericks.N+1` |
 | Apple-restoration patches + keychain.{h,m} | `patches/` (vendored from Wowfunhappy) | ❌ untrackable (hand-maintained fork of Apple's integrations; no upstream release feed) | repackage `-mavericks.N+1` |
 | OpenSSH release signing key | `scripts/openssh-signing-key.asc` | ❌ untrackable (stable signer identity; rotated rarely, by hand) | n/a |
-| Sparkle framework, 10.9 SDK, EdDSA tools | fetched by shared-cmake | ✅ tracked in shared-cmake | via `shared-cmake@v1` |
+| Sparkle framework, 10.9 SDK, EdDSA tools | fetched by shipyard | ✅ tracked in shipyard | via `shipyard@v1` |
 
 ## Provenance / credit
 

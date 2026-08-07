@@ -1,7 +1,7 @@
 #!/bin/sh
 # Standing equivalence gate: every shipped OpenSSH binary must be 10.9-safe (x86_64, minos
 # 10.9, no post-10.9 undefined imports/selectors). Delegates to the INSTALLED
-# mavericks-shared-cmake assert_binary_compatible.sh (which takes the binaries positionally and
+# mavericks-shipyard assert_binary_compatible.sh (which takes the binaries positionally and
 # hardcodes the x86_64/min-10.9 asserts + the post-10.9 symbol/selector denials -- there is no
 # <floor> <arch> argument to pass).
 #
@@ -18,9 +18,9 @@ set -eu
 SELF="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SELF/.." && pwd)"; export REPO_ROOT
 # versions.sh honours a pre-set REPO_ROOT (golang's ${REPO_ROOT:=...} idiom), so a test under
-# tests/ can source it plainly; it exports WORK, PREFIX, and MSC.
+# tests/ can source it plainly; it exports WORK, PREFIX, and SHIPYARD.
 . "$REPO_ROOT/build/versions.sh"
-: "${MSC:?mavericks-shared-cmake not found; install it -- see its README}"
+: "${SHIPYARD:?mavericks-shipyard not found; install it -- see its README}"
 
 STAGE="${STAGE:-$WORK/staging}"
 [ -d "$STAGE$PREFIX/bin" ] || { echo "not built ($STAGE) -- skipping"; exit 77; }
@@ -36,5 +36,5 @@ for b in "$STAGE$PREFIX"/bin/* "$STAGE$PREFIX"/sbin/* "$STAGE$PREFIX"/libexec/*;
 done
 [ "$#" -gt 0 ] || { echo "no Mach-O binaries under $STAGE$PREFIX -- skipping"; exit 77; }
 
-sh "$MSC/assert_binary_compatible.sh" "$@"
+sh "$SHIPYARD/assert_binary_compatible.sh" "$@"
 echo "ok: all shipped binaries are 10.9-safe"

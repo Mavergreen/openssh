@@ -15,6 +15,6 @@ jobs:
   repackage:
     permissions:
       actions: write
-    uses: ModernMavericks/shared-cmake/.github/workflows/repackage-on-ingredient-bump.yml@v1
+    uses: ModernMavericks/shipyard/.github/workflows/repackage-on-ingredient-bump.yml@v1
     with:
       own-upstream-paths: components/openssh/version

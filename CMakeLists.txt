@@ -7,7 +7,7 @@ set(CMAKE_OSX_ARCHITECTURES x86_64 CACHE STRING "Intel-only (10.9)")
 
 project(OpenSSHUpdater LANGUAGES OBJC)
 
-find_package(MavericksSharedCMake REQUIRED)
+find_package(MavericksShipyard REQUIRED)
 include(Mavericks)
 include(MavericksSparkle)
 

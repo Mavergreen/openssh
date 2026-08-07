@@ -41,8 +41,8 @@ libressl_expected_sha() {
 }
 
 build_libressl() {
-  : "${WORK:?}"; : "${LIBRESSL_VERSION:?}"; : "${MSC:?}"
-  SDK="$(sh "$MSC/fetch_sdk.sh")"
+  : "${WORK:?}"; : "${LIBRESSL_VERSION:?}"; : "${SHIPYARD:?}"
+  SDK="$(sh "$SHIPYARD/fetch_sdk.sh")"
   mkdir -p "$WORK"
   tb="$WORK/libressl-${LIBRESSL_VERSION}.tar.gz"
   [ -f "$tb" ] || curl -fSL -o "$tb" "$LIBRESSL_BASE_URL/libressl-${LIBRESSL_VERSION}.tar.gz"

@@ -50,11 +50,11 @@ jobs:
         with:
           fetch-depth: 0   # build/version.sh counts existing <upstream>-mavericks.* tags
 
-      - name: Install mavericks-shared-cmake
-        # shared-cmake installs itself via its own action (to $HOME/.local, self-registering in the
-        # CMake user package registry) and exports $MSC_SCRIPTS. We do NOT clone/`cmake --install` it
+      - name: Install mavericks-shipyard
+        # shipyard installs itself via its own action (to $HOME/.local, self-registering in the
+        # CMake user package registry) and exports $SHIPYARD_SCRIPTS. We do NOT clone/`cmake --install` it
         # by hand. @v1 is the moving major tag; Renovate's github-actions manager tracks it.
-        uses: ModernMavericks/shared-cmake/.github/actions/install@v1
+        uses: ModernMavericks/shipyard/.github/actions/install@v1
 
       - name: Install gnupg (OpenSSH upstream PGP verification)
         run: brew install gnupg
@@ -113,7 +113,7 @@ jobs:
         run: OUT="$PWD/dist" sh build/package-replace-pkg.sh
 
       - name: Run repo tests
-        run: sh "$MSC_SCRIPTS/run-repo-tests.sh"
+        run: sh "$SHIPYARD_SCRIPTS/run-repo-tests.sh"
 
       # Sign the PRODUCT pkg + render the single appcast.xml -- only when this run publishes. Fork PRs
       # resolve release=no, so they never reach this step and never touch secrets. The enclosure points
@@ -126,13 +126,13 @@ jobs:
         run: |
           set -eu
           [ -n "$SPARKLE_PRIVATE_KEY" ] || { echo "::error::SPARKLE_PRIVATE_KEY secret not set"; exit 1; }
-          [ -d "$MSC_SCRIPTS" ] || { echo "::error::MSC_SCRIPTS not set by install@v1"; exit 1; }
+          [ -d "$SHIPYARD_SCRIPTS" ] || { echo "::error::SHIPYARD_SCRIPTS not set by install@v1"; exit 1; }
           VER="${{ steps.ver.outputs.full }}"; TAG="${{ steps.ver.outputs.tag }}"
           NOTES="$(sh build/release-notes-file.sh "$TAG" "$VER")"
           base="https://github.com/${GITHUB_REPOSITORY}/releases/download/$TAG"
           PKG="$(ls dist/OpenSSH-*.pkg | grep -v System-Replace | head -1)"
           [ -n "$PKG" ] || { echo "::error::no product pkg in dist/"; exit 1; }
-          sh "$MSC_SCRIPTS/sign_and_appcast.sh" \
+          sh "$SHIPYARD_SCRIPTS/sign_and_appcast.sh" \
             --channel-title "Mavericks OpenSSH" --version "$VER" \
             --pkg-url "$base/$(basename "$PKG")" --notes-file "$NOTES" \
             --pkg "$PKG" --min-os 10.9.5 > dist/appcast.xml
@@ -157,15 +157,15 @@ jobs:
       - name: Artifact conformance
         if: steps.ver.outputs.release == 'yes'
         run: |
-          sh "$MSC_SCRIPTS/artifact-facts.sh" dist "${{ steps.ver.outputs.full }}" \
-            | sh "$MSC_SCRIPTS/check-artifact-conformance.sh"
+          sh "$SHIPYARD_SCRIPTS/artifact-facts.sh" dist "${{ steps.ver.outputs.full }}" \
+            | sh "$SHIPYARD_SCRIPTS/check-artifact-conformance.sh"
 
       # Behavior gate: a client on the previous release must SEE this as an upgrade -- a numeric
       # sparkle:version ordering strictly after the last published *-mavericks.N tag. This single-line
       # product has one tag line, so no --upstream-glob is needed (the script defaults to *-mavericks.*).
       - name: Assert appcast upgradeable
         if: steps.ver.outputs.release == 'yes'
-        run: sh "$MSC_SCRIPTS/assert_appcast_upgradeable.sh" --appcast dist/appcast.xml --version "${{ steps.ver.outputs.full }}"
+        run: sh "$SHIPYARD_SCRIPTS/assert_appcast_upgradeable.sh" --appcast dist/appcast.xml --version "${{ steps.ver.outputs.full }}"
 
       - uses: actions/upload-artifact@v7
         with:
@@ -177,7 +177,7 @@ jobs:
     if: needs.build.outputs.publish == 'true'
     permissions:
       contents: write
-    uses: ModernMavericks/shared-cmake/.github/workflows/publish-release.yml@v1
+    uses: ModernMavericks/shipyard/.github/workflows/publish-release.yml@v1
     with:
       version: ${{ needs.build.outputs.version }}
       artifact: openssh-dist

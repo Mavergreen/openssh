@@ -7,7 +7,7 @@ set -eu
 SELF="$(cd "$(dirname "$0")" && pwd)"
 . "$SELF/versions.sh"
 
-SDK="$(sh "$MSC/fetch_sdk.sh")"
+SDK="$(sh "$SHIPYARD/fetch_sdk.sh")"
 CC=/usr/bin/clang        # Apple clang: required for ObjC (keychain.m) + blocks
 
 SRC="$(sh "$SELF/fetch-openssh.sh")"

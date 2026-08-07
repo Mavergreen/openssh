@@ -5,7 +5,7 @@
 set -eu
 SELF="$(cd "$(dirname "$0")" && pwd)"
 . "$SELF/versions.sh"
-: "${MSC_SCRIPTS:=$MSC}"
+: "${SHIPYARD_SCRIPTS:=$SHIPYARD}"
 FULL="$(cat "$REPO_ROOT/VERSION")"
 OUT="${OUT:-$REPO_ROOT/dist}"; mkdir -p "$OUT"
 
@@ -23,14 +23,14 @@ comp="$OUT/openssh-replace-component.pkg"
 pkgbuild --root "$payload" --identifier dev.modernmavericks.openssh.replace \
   --version "$FULL" --scripts "$scr" --install-location / "$comp"
 
-sh "$MSC_SCRIPTS/set_install_floor.sh" \
+sh "$SHIPYARD_SCRIPTS/set_install_floor.sh" \
   --identifier dev.modernmavericks.openssh.replace \
   --title "Make OpenSSH for Mavericks the system default" \
   --component "$comp" --min-os 10.9.5 \
   --out "$OUT/OpenSSH-System-Replace-${FULL}.pkg"
 rm -f "$comp"   # intermediate component (no floor): only the floored product archive ships
 
-sh "$MSC_SCRIPTS/build-info.sh" "$OUT/build-info-replace.txt" \
+sh "$SHIPYARD_SCRIPTS/build-info.sh" "$OUT/build-info-replace.txt" \
   variant=replace upstream="$OPENSSH_VERSION" full="$FULL"
 
 echo "built $OUT/OpenSSH-System-Replace-${FULL}.pkg"

@@ -22,5 +22,5 @@ SYSCONFDIR=/usr/local/etc; export SYSCONFDIR
 # --- Build workspace (heavy I/O off the NFS tree) ---
 : "${WORK:=${HOME}/.cache/mavericks-openssh/work}"; export WORK
 
-# --- Locate shared-cmake scripts ($MSC) ---
+# --- Locate shipyard scripts ($SHIPYARD) ---
 . "$REPO_ROOT/build/msc.sh" 2>/dev/null || true
