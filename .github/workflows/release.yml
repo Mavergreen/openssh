@@ -29,13 +29,23 @@ on:
 permissions:
   contents: write
 
-# Never cancel a publish: a push-to-main auto-cut release shares the main ref and must run to
-# completion. A workflow_dispatch (the repackage path) is serialized under one fixed group so two
-# dispatches can't race, but is NOT cancelled either. Not keyed on run_id -- that would defeat the
-# whole point (every run would be its own group and nothing would ever serialize).
+# Only a pull_request supersedes -- keyed per ref, so a force-push replaces its own predecessor.
+# Everything else (a branch push, a *-mavericks.* tag, a workflow_dispatch) is keyed per RUN and is
+# therefore alone in its group: never queued, never evicted, never cancelled.
+#
+# cancel-in-progress:false was never the protection it looked like: it protects the RUNNING job and
+# not the QUEUED one -- GitHub keeps only the newest pending run per group and cancels the rest -- so
+# the old shared group discarded runs silently. golang lost one on 2026-09-09, 13 seconds after the
+# run that evicted it.
+#
+# A push to main HERE CAN PUBLISH (an upstream with no release yet auto-cuts -mavericks.1), and
+# concurrency is resolved when a run is queued -- before the ver step decides whether this one
+# releases -- so cancelling the run would cancel the publish job with it.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event_name == 'workflow_dispatch' && 'local_release' || github.ref }}
-  cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}
+  group: >-
+    release-${{ github.event_name == 'pull_request'
+                && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build:
