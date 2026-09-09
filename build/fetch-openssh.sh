@@ -14,7 +14,7 @@ openssh_tarball_name() { printf 'openssh-%s.tar.gz\n' "$1"; }
 verify_openssh_signature() {
   # $1 = tarball, $2 = detached .asc. Fails fast (no gpg call) when the signature is missing.
   [ -f "$2" ] || { echo "FATAL: missing signature $2" >&2; return 1; }
-  ring="$(mktemp -d)"
+  ring="$(mktemp -d "${TMPDIR:-/tmp}/fetch-openssh.XXXXXX")"   # template: 10.9 BSD mktemp requires one
   gpg --homedir "$ring" --import "$FETCH_KEY" >/dev/null 2>&1 || { echo "FATAL: cannot import signing key" >&2; return 1; }
   gpg --homedir "$ring" --trust-model always --verify "$2" "$1" >/dev/null 2>&1 \
     || { echo "FATAL: OpenSSH signature verification failed" >&2; return 1; }
