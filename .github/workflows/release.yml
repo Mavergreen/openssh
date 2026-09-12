@@ -125,6 +125,18 @@ jobs:
       - name: Run repo tests
         run: sh "$SHIPYARD_SCRIPTS/run-repo-tests.sh"
 
+      # Generate the single notes file ONCE, before it has two consumers: the appcast's <description>
+      # (next step) and the release body, which travels IN the artifact because publish-release.yml
+      # does not check out the repo (dist/RELEASE_NOTES.md is uploaded below with the rest of dist/*).
+      # Same bytes, same file, read twice -- so the Release page and Sparkle tell one story.
+      - name: Generate release notes
+        if: steps.ver.outputs.release == 'yes'
+        run: |
+          set -eu
+          sh "$SHIPYARD_SCRIPTS/release-notes.sh" \
+            --tag "${{ steps.ver.outputs.tag }}" --version "${{ steps.ver.outputs.full }}" \
+            --product OpenSSH --min-os 10.9.5 --out dist/RELEASE_NOTES.md
+
       # Sign the PRODUCT pkg + render the single appcast.xml -- only when this run publishes. Fork PRs
       # resolve release=no, so they never reach this step and never touch secrets. The enclosure points
       # at the release-asset download URL; the feed itself is served from releases/latest/download.
@@ -139,25 +151,14 @@ jobs:
           printenv SPARKLE_PRIVATE_KEY | grep -q . || { echo "::error::SPARKLE_PRIVATE_KEY secret not set"; exit 1; }
           [ -d "$SHIPYARD_SCRIPTS" ] || { echo "::error::SHIPYARD_SCRIPTS not set by install@v1"; exit 1; }
           VER="${{ steps.ver.outputs.full }}"; TAG="${{ steps.ver.outputs.tag }}"
-          NOTES="$(sh build/release-notes-file.sh "$TAG" "$VER")"
           base="https://github.com/${GITHUB_REPOSITORY}/releases/download/$TAG"
           PKG="$(ls dist/OpenSSH-*.pkg | grep -v System-Replace | head -1)"
           [ -n "$PKG" ] || { echo "::error::no product pkg in dist/"; exit 1; }
           sh "$SHIPYARD_SCRIPTS/sign_and_appcast.sh" \
             --channel-title "Mavericks OpenSSH" --version "$VER" \
-            --pkg-url "$base/$(basename "$PKG")" --notes-file "$NOTES" \
+            --pkg-url "$base/$(basename "$PKG")" --notes-file dist/RELEASE_NOTES.md \
             --pkg "$PKG" --min-os 10.9.5 > dist/appcast.xml
           echo "=== appcast.xml ==="; cat dist/appcast.xml
-
-      # The release body travels IN the artifact: publish-release.yml does not check out the repo. The
-      # same guaranteed-non-empty notes file the appcast used, so the Release page and Sparkle tell one
-      # story. No SHA256SUMS here -- publish-release.yml regenerates it over everything it attaches.
-      - name: Stage release notes into the artifact
-        if: steps.ver.outputs.publish == 'true'
-        run: |
-          set -eu
-          NOTES="$(sh build/release-notes-file.sh "${{ steps.ver.outputs.tag }}" "${{ steps.ver.outputs.full }}")"
-          cp "$NOTES" dist/RELEASE_NOTES.md
 
       # Conformance: do the artifacts we are about to publish agree with each other and with the
       # family? Each piece is checked somewhere already -- the compat guard reads binaries,
