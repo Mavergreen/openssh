@@ -1,0 +1,78 @@
+--- misc.h.orig
++++ misc.h
+@@ -241,6 +241,7 @@
+ struct notifier_ctx;
+ 
+ char	*read_passphrase(const char *, int);
++char	*read_passphrase_with_source(const char *, int, int *);
+ int	 ask_permission(const char *, ...) __attribute__((format(printf, 1, 2)));
+ struct notifier_ctx *notify_start(int, const char *, ...)
+ 	__attribute__((format(printf, 2, 3)));
+--- readpass.c.orig
++++ readpass.c
+@@ -122,10 +122,20 @@
+ char *
+ read_passphrase(const char *prompt, int flags)
+ {
++	return read_passphrase_with_source(prompt, flags, NULL);
++}
++
++/* Report whether the answer came from an external askpass helper. */
++char *
++read_passphrase_with_source(const char *prompt, int flags, int *used_askpass)
++{
+ 	char cr = '\r', *askpass = NULL, *ret, buf[1024];
+ 	int rppflags, ttyfd, use_askpass = 0, allow_askpass = 0;
+ 	const char *askpass_hint = NULL;
+ 	const char *s;
++
++	if (used_askpass != NULL)
++		*used_askpass = 0;
+ 
+ 	if (((s = getenv("DISPLAY")) != NULL && *s != '\0') ||
+ 	    ((s = getenv("WAYLAND_DISPLAY")) != NULL && *s != '\0'))
+@@ -173,6 +183,8 @@
+ 		return (flags & RP_ALLOW_EOF) ? NULL : xstrdup("");
+ 
+ 	if (use_askpass && allow_askpass) {
++		if (used_askpass != NULL)
++			*used_askpass = 1;
+ 		if (getenv(SSH_ASKPASS_ENV))
+ 			askpass = getenv(SSH_ASKPASS_ENV);
+ 		else
+--- sshconnect.c.orig
++++ sshconnect.c
+@@ -578,12 +578,13 @@
+ 	const char *msg, *again = "Please type 'yes' or 'no': ";
+ 	const char *again_fp = "Please type 'yes', 'no' or the fingerprint: ";
+ 	char *p, *cp;
+-	int ret = -1;
++	int ret = -1, used_askpass;
+ 
+ 	if (options.batch_mode)
+ 		return 0;
+ 	for (msg = prompt;;msg = fingerprint ? again_fp : again) {
+-		cp = p = read_passphrase(msg, RP_ECHO);
++		cp = p = read_passphrase_with_source(msg, RP_ECHO,
++		    &used_askpass);
+ 		if (p == NULL)
+ 			return 0;
+ 		p += strspn(p, " \t"); /* skip leading whitespace */
+@@ -596,6 +597,17 @@
+ 		free(cp);
+ 		if (ret != -1)
+ 			return ret;
++		/*
++		 * A helper may mistake this question for a password prompt.
++		 * Fail closed instead of repeatedly launching it with the
++		 * same question. Interactive terminal input may still retry.
++		 * Never log the response: it could contain a credential.
++		 */
++		if (used_askpass) {
++			error("Invalid host key confirmation response from askpass; "
++			    "connection cancelled.");
++			return 0;
++		}
+ 	}
+ }
+ 

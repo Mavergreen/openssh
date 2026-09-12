@@ -16,6 +16,7 @@ for entry in \
   "ssh-add-keychain.patch 0" \
   "ssh-agent-launchd.patch 0" \
   "sshd-session-inetd-fix.patch 0" \
+  "ssh-askpass-confirm.patch 0" \
   "Makefile.in.patch 1"; do
   patch=${entry% *}; strip=${entry##* }
   echo ">> applying $patch (-p$strip)"

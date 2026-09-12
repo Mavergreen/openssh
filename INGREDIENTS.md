@@ -16,7 +16,15 @@ repackage via `repackage-on-ingredient-bump`.
 
 `patches/*.patch` and `patches/keychain.{h,m}` are vendored from
 `github.com/Wowfunhappy/OpenSSH-Mavericks-Update` (restores Apple's Keychain, launchd, and
-sandbox integrations, plus the `sshd-session` inetd fix). Thank you to Wowfunhappy.
+sandbox integrations, plus the `sshd-session` inetd fix and the askpass host-key confirmation
+fix). Thank you to Wowfunhappy.
+
+Upstream has no release feed, so these arrive only when someone looks. Last synced: upstream
+commit `d7b66a7` (2026-09-11), which added `ssh-askpass-confirm.patch`. Its build-script changes
+(https download URLs, `curl --fail --proto '=https'`, a `PACKAGE_REVISION` axis) are deliberately
+NOT taken: we already fetch over https from ftp.openbsd.org with `curl -fSL`, verify OpenSSH by
+PGP signer identity and LibreSSL against its published SHA256, and `-mavericks.N` is our
+packaging axis.
 
 ## Conformance deviations
 
