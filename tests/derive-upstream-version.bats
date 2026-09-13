@@ -30,9 +30,18 @@ teardown() { rm -f "$REPO/UPSTREAM_VERSION"; }
   [ "$status" -ne 0 ]
 }
 
+# The four cases above pin the TRANSFORM with fixed inputs. This one pins the PLUMBING: that
+# no-arg mode reads the committed tag and writes what --print would say for it. Deriving the
+# expectation instead of hardcoding a version is deliberate -- this test asserted "9.9p2" and so
+# failed the moment components/openssh/version moved to V_10_5_P1, turning every upstream bump
+# into a red build a human had to hand-edit. A test that must be edited to accept a new upstream
+# is not testing the upstream, it is blocking it.
 @test "writes UPSTREAM_VERSION from components/openssh/version when no arg" {
+  tag="$(tr -d ' \t\r\n' < "$REPO/components/openssh/version")"
+  want="$(sh "$REPO/build/derive-upstream-version.sh" --print "$tag")"
   run sh "$REPO/build/derive-upstream-version.sh"
   [ "$status" -eq 0 ]
-  [ "$(cat "$REPO/UPSTREAM_VERSION")" = "9.9p2" ]
+  [ -n "$want" ]
+  [ "$(cat "$REPO/UPSTREAM_VERSION")" = "$want" ]
   rm -f "$REPO/UPSTREAM_VERSION"
 }
