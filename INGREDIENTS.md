@@ -28,13 +28,20 @@ Do the same next time: `apple-oss-distributions/OpenSSH` at its newest tag, diff
 matching openbsd tarball, is the authoritative source for these patches.
 
 **But do not take Apple's newest blindly, and that is why this is not wired to Renovate.** Apple
-targets current macOS; we target 10.9, and they have already diverged in a way that builds green
-and fails on the platform. Their `ssh-agent.c` now calls `launch_activate_socket()`, introduced in
-10.10, undeclared in the 10.9 SDK's `launch.h` and absent from its libSystem — it compiles with
-only an implicit-declaration warning, links, and passes the compat guard. We deliberately keep the
-older `launch_msg(LAUNCH_KEY_CHECKIN)` check-in, which 10.9 declares. What we DO take from Apple is
-placement: the check-in must sit after `closefrom()`, which is new in 10.x and would otherwise
-purge the listener fds.
+targets current macOS; we target 10.9. Their `ssh-agent.c` now calls `launch_activate_socket()`,
+which the 10.9 SDK's `launch.h` does not declare — so clang compiles it on an implicit declaration,
+guessing the prototype for what is, at this deployment target, an undocumented SPI.
+
+Precisely (an earlier revision of this file overstated it): the symbol is NOT absent. It is exported
+by `/usr/lib/system/libxpc.dylib` on 10.9.5 and re-exported through libSystem, and a call to it
+links and runs there, returning `ENOTSUP`. What we actually know is that it is undeclared, that the
+compiler is therefore guessing its signature, and that this was verified only on 10.9.5 — not on
+10.9.0-10.9.4, which the product also targets.
+
+So we keep the older `launch_msg(LAUNCH_KEY_CHECKIN)` check-in: 10.9's `launch.h` declares it, the
+prototype is the real one, Wowfunhappy's users exercise it, and it needs no hand-written prototype
+for an SPI. What we DO take from Apple is placement: the check-in must sit after `closefrom()`,
+which is new in 10.x and would otherwise purge the listener fds.
 
 A tag moving in Apple's tree is therefore a signal to go and read, not a change to apply. Last
 synced from Wowfunhappy: commit `d7b66a7` (2026-09-11), which added `ssh-askpass-confirm.patch`.
