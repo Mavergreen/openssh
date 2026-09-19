@@ -25,7 +25,15 @@ REPO_ROOT="$(cd "$SELF/.." && pwd)"; export REPO_ROOT
 STAGE="${STAGE:-$WORK/staging}"
 [ -d "$STAGE$PREFIX/bin" ] || { echo "not built ($STAGE) -- skipping"; exit 77; }
 
-# Collect every shipped Mach-O binary (sshd-keygen-wrapper is a shell script, not Mach-O).
+# sshd-keygen-wrapper is a shell script rather than Mach-O, so the Mach-O sweep below skips it.
+# Assert it is here first: this guard walks the shipped payload, so while it merely SKIPPED the
+# one non-Mach-O file, that file could stop being shipped and nothing anywhere went red --
+# which is how 10.5p1-mavericks.2 shipped with launchd's sshd Program missing.
+WRAPPER="$STAGE$PREFIX/libexec/sshd-keygen-wrapper"
+[ -f "$WRAPPER" ] || { echo "FAIL: $WRAPPER is not in the payload; launchd's ssh job needs it" >&2; exit 1; }
+[ -x "$WRAPPER" ] || { echo "FAIL: $WRAPPER is not executable; launchd cannot run it" >&2; exit 1; }
+
+# Collect every shipped Mach-O binary.
 set --
 for b in "$STAGE$PREFIX"/bin/* "$STAGE$PREFIX"/sbin/* "$STAGE$PREFIX"/libexec/*; do
   [ -f "$b" ] || continue

@@ -9,6 +9,7 @@ repackage via `repackage-on-ingredient-bump`.
 | OpenSSH portable (upstream) | `components/openssh/version` (tag form `V_x_y_Pz`) | ✅ github-tags `openssh/openssh-portable` | new upstream → `-mavericks.1` (auto-cut on main) |
 | LibreSSL portable (static crypto) | `build/versions.sh` `LIBRESSL_VERSION` | ✅ github-tags `libressl/portable` | repackage `-mavericks.N+1` |
 | Apple-restoration patches + keychain.{h,m} | `patches/` (derived from Apple's OpenSSH; see Provenance) | ⚠️ untrackable as files, but their SOURCE has a feed: `apple-oss-distributions/OpenSSH` publishes tags (`OpenSSH-354.120.2`, ...). Not wired to Renovate because a bump there is a prompt to re-read, never an automatic edit — see Provenance. | repackage `-mavericks.N+1` |
+| `sshd-keygen-wrapper` (launchd's sshd Program on 10.9) | `scripts/sshd-keygen-wrapper.in`, staged with `@PREFIX@` substituted | ❌ untrackable (ours, not upstream's: OpenSSH portable ships no such file, and Apple's own predates ecdsa/ed25519 host keys, so we generate them with `ssh-keygen -A` instead of restoring it verbatim) | repackage `-mavericks.N+1` |
 | OpenSSH release signing key | `scripts/openssh-signing-key.asc` | ❌ untrackable (stable signer identity; rotated rarely, by hand) | n/a |
 | Sparkle framework, 10.9 SDK, EdDSA tools | fetched by shipyard | ✅ tracked in shipyard | via `shipyard@v1` |
 

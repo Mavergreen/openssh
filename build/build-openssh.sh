@@ -37,6 +37,14 @@ APPLE_DEFS="-D__APPLE_KEYCHAIN__ -D__APPLE_MEMBERSHIP__ -D__APPLE_LAUNCHD__ -D__
   make -j"$(sysctl -n hw.ncpu)"
   make install-nokeys DESTDIR="$STAGE" )
 
+# 10.9's ssh.plist runs sshd through /usr/libexec/sshd-keygen-wrapper, which the replacement pkg
+# symlinks into our prefix -- upstream OpenSSH has no such file, so we ship one or launchd's ssh
+# job points at nothing (tests/replace-links-resolve.sh is the standing check).
+mkdir -p "$STAGE$PREFIX/libexec"
+sed "s|@PREFIX@|$PREFIX|g" "$SELF/../scripts/sshd-keygen-wrapper.in" \
+  > "$STAGE$PREFIX/libexec/sshd-keygen-wrapper"
+chmod +x "$STAGE$PREFIX/libexec/sshd-keygen-wrapper"
+
 # Config munge: match Wowfunhappy -- UsePAM + interop shims (idempotent appends).
 CONF="$STAGE$SYSCONFDIR"
 grep -q '^UsePAM yes' "$CONF/sshd_config" || echo 'UsePAM yes' >> "$CONF/sshd_config"
