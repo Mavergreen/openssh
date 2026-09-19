@@ -1,8 +1,12 @@
 name: repackage-on-ingredient-bump
 
-# When LibreSSL or the vendored patches change (not the OpenSSH upstream), dispatch a
-# -mavericks.(N+1) repackage via the shared reusable workflow. The OpenSSH upstream itself is
-# the N=1 auto-cut path in release.yml (push to main), so it's excluded here.
+# When LibreSSL, the vendored patches, or our own sshd-keygen-wrapper change (not the OpenSSH
+# upstream), dispatch a -mavericks.(N+1) repackage via the shared reusable workflow. The OpenSSH
+# upstream itself is the N=1 auto-cut path in release.yml (push to main), so it's excluded here.
+#
+# Every path here must be an ingredient in INGREDIENTS.md and vice versa: the notes generator
+# derives which ingredient moved from this list, so a pin documented as an ingredient but missing
+# here changes the shipped artifact without ever cutting a release to carry it.
 
 on:
   push:
@@ -10,6 +14,7 @@ on:
     paths:
       - build/versions.sh
       - patches/**
+      - scripts/sshd-keygen-wrapper.in
 
 jobs:
   repackage:
