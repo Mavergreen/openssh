@@ -6,6 +6,9 @@ set -eu
 sw="$(sw_vers -productVersion 2>/dev/null || echo unknown)"
 case "$sw" in 10.9*) : ;; *) echo "not 10.9 ($sw) -- skipping"; exit 77;; esac
 [ -x /usr/local/bin/ssh ] || { echo "product not installed -- skipping"; exit 77; }
+# The host keys are root-owned 0600, so an unprivileged sshd exits "no hostkeys available" -- a
+# test that cannot run yet SKIPs rather than reporting the product broken.
+[ "$(id -u)" = 0 ] || { echo "not root -- skipping"; exit 77; }
 
 /usr/local/bin/ssh -V 2>&1 | grep -q OpenSSH || { echo "FAIL: ssh -V" >&2; exit 1; }
 port=2222

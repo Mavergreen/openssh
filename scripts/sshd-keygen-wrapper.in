@@ -1,0 +1,14 @@
+#!/bin/sh
+# 10.9's /System/Library/LaunchDaemons/ssh.plist names /usr/libexec/sshd-keygen-wrapper as the
+# Program for com.openssh.sshd, so the replacement pkg symlinks that path here: without this file
+# launchd's ssh job points at a dangling symlink and the host has no sshd at all.
+#
+# Apple's original generated only the host key types of its day. ssh-keygen -A creates every type
+# this OpenSSH supports (rsa, ecdsa, ed25519) and leaves existing keys alone, so a host that has
+# been served by this package keeps its identity and gains the modern keys.
+#
+# launchd execs us with the plist's ProgramArguments, and the kernel drops argv[0] for an
+# interpreted script, so "$@" is the sshd arguments (-i) and nothing else.
+# @PREFIX@ is substituted at stage time from $PREFIX. POSIX /bin/sh.
+@PREFIX@/bin/ssh-keygen -A >/dev/null 2>&1
+exec @PREFIX@/sbin/sshd "$@"
