@@ -40,8 +40,21 @@ compiler is therefore guessing its signature, and that this was verified only on
 
 So we keep the older `launch_msg(LAUNCH_KEY_CHECKIN)` check-in: 10.9's `launch.h` declares it, the
 prototype is the real one, Wowfunhappy's users exercise it, and it needs no hand-written prototype
-for an SPI. What we DO take from Apple is placement: the check-in must sit after `closefrom()`,
-which is new in 10.x and would otherwise purge the listener fds.
+for an SPI.
+
+**Do NOT also take Apple's placement — the two choices are coupled, and an earlier revision of this
+file got it backwards.** It said the check-in "must sit after `closefrom()`, which is new in 10.x and
+would otherwise purge the listener fds." That is right for Apple, whose `launch_activate_socket()`
+reaches launchd over a Mach port that closing descriptors cannot disturb. `launch_msg()` talks to
+launchd over a socket whose descriptor liblaunch caches, and `closefrom()` closes it: every
+subsequent check-in fails with `EPERM`, the agent exits 1, launchd respawns it forever, and any
+client — `ssh-add -l` in a login shell, say — blocks on a socket no agent will ever answer. Measured
+on 10.9.5, both orders, under a real launchd job; 10.5p1-mavericks.2 shipped the broken one.
+
+So our check-in sits BEFORE `closefrom()`, and the purge then runs from above the listener
+descriptors launchd handed us rather than from `STDERR_FILENO + 1`, which would close the very
+sockets we just checked in for. `tests/launchd-agent-checkin.sh` is the standing check: it loads a
+real launchd job on 10.9 and fails unless the agent answers a client.
 
 A tag moving in Apple's tree is therefore a signal to go and read, not a change to apply. Last
 synced from Wowfunhappy: commit `d7b66a7` (2026-09-11), which added `ssh-askpass-confirm.patch`.
