@@ -13,8 +13,12 @@ OUT="${OUT:-$REPO_ROOT/dist}"; mkdir -p "$OUT"
 
 [ -d "$STAGE$PREFIX/bin" ] || { echo "FATAL: no staged payload at $STAGE$PREFIX (run build/build-openssh.sh first)" >&2; exit 1; }
 
-UPD_APP="${UPD_APP:-$REPO_ROOT/build/updater/OpenSSHUpdater.app}"
-[ -d "$UPD_APP" ] || { echo "FATAL: updater not built at $UPD_APP (shipyard-cmake --build build/updater)" >&2; exit 1; }
+# platform: matches shipyard's mavericks-cross hidden preset's binaryDir formula
+#           ($penv{TMPDIR}/mm-build/${sourceDirName}-cross, mavericks-presets.json) -- CMakePresets.json's
+#           "cross" preset inherits it and no longer pins its own binaryDir, so this default must agree
+#           with what `shipyard-cmake --preset cross` actually configures, not with a path in the tree.
+UPD_APP="${UPD_APP:-${TMPDIR:-/tmp}/mm-build/$(basename "$REPO_ROOT")-cross/OpenSSHUpdater.app}"
+[ -d "$UPD_APP" ] || { echo "FATAL: updater not built at $UPD_APP (shipyard-cmake --preset cross && shipyard-cmake --build \$UPDATER_BUILD_DIR --target OpenSSHUpdater)" >&2; exit 1; }
 # The updater must NOT link the product it updates.
 otool -L "$UPD_APP/Contents/MacOS/OpenSSHUpdater" | grep -q '/usr/local/.*ssh' && { echo "FATAL: updater links the product" >&2; exit 1; } || true
 

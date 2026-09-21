@@ -1,0 +1,1 @@
+VERSION    # release.yml stamps the resolved version here; build/package-pkg.sh and build/package-replace-pkg.sh read it back later in the same job

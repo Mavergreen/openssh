@@ -69,6 +69,18 @@ jobs:
       - name: Record the pre-build tree
         run: sh "$SHIPYARD_SCRIPTS/assert-tree-clean.sh" --record
 
+      # platform: shipyard's mavericks-cross hidden preset pins its own
+      # environment.MAVERICKS_BUILD_ROOT to $penv{TMPDIR}/mm-build, and CMake applies a
+      # preset's own environment table after anything exported here -- so an export cannot
+      # redirect a --preset build. Derive the path instead of setting it (same formula the
+      # hidden preset uses); CMakePresets.json's own "cross" preset does not re-declare the
+      # variable, so a fresh clone with it unset still configures correctly.
+      - name: Locate the out-of-tree build the preset will use
+        run: echo "UPDATER_BUILD_DIR=${TMPDIR:-/tmp}/mm-build/$(basename "$PWD")-cross" >> "$GITHUB_ENV"
+
+      - name: Stage release artifacts out of tree
+        run: echo "DIST=$RUNNER_TEMP/dist" >> "$GITHUB_ENV"
+
       - name: Install gnupg (OpenSSH upstream PGP verification)
         run: brew install gnupg
 
@@ -117,20 +129,20 @@ jobs:
         run: STAGE="$STAGE" sh tests/compat-guard.sh
 
       - name: Build updater .app
-        run: shipyard-cmake --preset cross && shipyard-cmake --build build/updater --target OpenSSHUpdater
+        run: shipyard-cmake --preset cross && shipyard-cmake --build "$UPDATER_BUILD_DIR" --target OpenSSHUpdater
 
       - name: Package product pkg
-        run: OUT="$PWD/dist" STAGE="$STAGE" sh build/package-pkg.sh
+        run: OUT="$DIST" STAGE="$STAGE" UPD_APP="$UPDATER_BUILD_DIR/OpenSSHUpdater.app" sh build/package-pkg.sh
 
       - name: Package replacement pkg
-        run: OUT="$PWD/dist" sh build/package-replace-pkg.sh
+        run: OUT="$DIST" sh build/package-replace-pkg.sh
 
       - name: Run repo tests
         run: sh "$SHIPYARD_SCRIPTS/run-repo-tests.sh"
 
       # Generate the single notes file ONCE, before it has two consumers: the appcast's <description>
       # (next step) and the release body, which travels IN the artifact because publish-release.yml
-      # does not check out the repo (dist/RELEASE_NOTES.md is uploaded below with the rest of dist/*).
+      # does not check out the repo ($DIST/RELEASE_NOTES.md is uploaded below with the rest of $DIST/*).
       # Same bytes, same file, read twice -- so the Release page and Sparkle tell one story.
       - name: Generate release notes
         if: steps.ver.outputs.release == 'yes'
@@ -138,7 +150,7 @@ jobs:
           set -eu
           sh "$SHIPYARD_SCRIPTS/release-notes.sh" \
             --tag "${{ steps.ver.outputs.tag }}" --version "${{ steps.ver.outputs.full }}" \
-            --product OpenSSH --min-os 10.9.5 --out dist/RELEASE_NOTES.md
+            --product OpenSSH --min-os 10.9.5 --out "$DIST/RELEASE_NOTES.md"
 
       # Sign the PRODUCT pkg + render the single appcast.xml -- only when this run publishes. Fork PRs
       # resolve release=no, so they never reach this step and never touch secrets. The enclosure points
@@ -155,24 +167,24 @@ jobs:
           [ -d "$SHIPYARD_SCRIPTS" ] || { echo "::error::SHIPYARD_SCRIPTS not set by install@v1"; exit 1; }
           VER="${{ steps.ver.outputs.full }}"; TAG="${{ steps.ver.outputs.tag }}"
           base="https://github.com/${GITHUB_REPOSITORY}/releases/download/$TAG"
-          PKG="$(ls dist/OpenSSH-*.pkg | grep -v System-Replace | head -1)"
-          [ -n "$PKG" ] || { echo "::error::no product pkg in dist/"; exit 1; }
+          PKG="$(ls "$DIST"/OpenSSH-*.pkg | grep -v System-Replace | head -1)"
+          [ -n "$PKG" ] || { echo "::error::no product pkg in $DIST"; exit 1; }
           sh "$SHIPYARD_SCRIPTS/sign_and_appcast.sh" \
             --channel-title "Mavericks OpenSSH" --version "$VER" \
-            --pkg-url "$base/$(basename "$PKG")" --notes-file dist/RELEASE_NOTES.md \
-            --pkg "$PKG" --min-os 10.9.5 > dist/appcast.xml
-          echo "=== appcast.xml ==="; cat dist/appcast.xml
+            --pkg-url "$base/$(basename "$PKG")" --notes-file "$DIST/RELEASE_NOTES.md" \
+            --pkg "$PKG" --min-os 10.9.5 > "$DIST/appcast.xml"
+          echo "=== appcast.xml ==="; cat "$DIST/appcast.xml"
 
       # Conformance: do the artifacts we are about to publish agree with each other and with the
       # family? Each piece is checked somewhere already -- the compat guard reads binaries,
       # set_install_floor stamps a floor, sign_and_appcast signs -- but nothing asserted they agree.
       # Gated like the signing step and run AFTER it: the checker cross-validates appcast<->pkg<->asset
       # and reads the fact stream on STDIN (a positional dist arg is ignored), so it needs the rendered
-      # dist/appcast.xml. The floor-less product pkg's minimum lives in that appcast.
+      # $DIST/appcast.xml. The floor-less product pkg's minimum lives in that appcast.
       - name: Artifact conformance
         if: steps.ver.outputs.release == 'yes'
         run: |
-          sh "$SHIPYARD_SCRIPTS/artifact-facts.sh" dist "${{ steps.ver.outputs.full }}" \
+          sh "$SHIPYARD_SCRIPTS/artifact-facts.sh" "$DIST" "${{ steps.ver.outputs.full }}" \
             | sh "$SHIPYARD_SCRIPTS/check-artifact-conformance.sh"
 
       # Behavior gate: a client on the previous release must SEE this as an upgrade -- a numeric
@@ -180,7 +192,7 @@ jobs:
       # product has one tag line, so no --upstream-glob is needed (the script defaults to *-mavericks.*).
       - name: Assert appcast upgradeable
         if: steps.ver.outputs.release == 'yes'
-        run: sh "$SHIPYARD_SCRIPTS/assert_appcast_upgradeable.sh" --appcast dist/appcast.xml --version "${{ steps.ver.outputs.full }}"
+        run: sh "$SHIPYARD_SCRIPTS/assert_appcast_upgradeable.sh" --appcast "$DIST/appcast.xml" --version "${{ steps.ver.outputs.full }}"
 
       - name: The build must not have written into the source tree
         run: sh "$SHIPYARD_SCRIPTS/assert-tree-clean.sh"
@@ -188,7 +200,7 @@ jobs:
       - uses: actions/upload-artifact@v7
         with:
           name: openssh-dist
-          path: dist/*
+          path: ${{ env.DIST }}/*
 
   # Before anything is published: no log of this run, and no file about to be released, carries a
   # piece of the signing key. shipyard's publish-release.yml looks for this job's record on any signed
