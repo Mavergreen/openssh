@@ -4,6 +4,9 @@
 /dist/
 build/work/
 build/updater/
+
+# The per-developer build-location override
+CMakeUserPresets.json
 *.pkg
 *.tar.gz
 *.tar.gz.asc
