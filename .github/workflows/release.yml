@@ -66,6 +66,9 @@ jobs:
         # Renovate's github-actions manager tracks it.
         uses: ModernMavericks/shipyard/.github/actions/install@v1
 
+      - name: Record the pre-build tree
+        run: sh "$SHIPYARD_SCRIPTS/assert-tree-clean.sh" --record
+
       - name: Install gnupg (OpenSSH upstream PGP verification)
         run: brew install gnupg
 
@@ -178,6 +181,9 @@ jobs:
       - name: Assert appcast upgradeable
         if: steps.ver.outputs.release == 'yes'
         run: sh "$SHIPYARD_SCRIPTS/assert_appcast_upgradeable.sh" --appcast dist/appcast.xml --version "${{ steps.ver.outputs.full }}"
+
+      - name: The build must not have written into the source tree
+        run: sh "$SHIPYARD_SCRIPTS/assert-tree-clean.sh"
 
       - uses: actions/upload-artifact@v7
         with:
