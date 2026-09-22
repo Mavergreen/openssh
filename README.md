@@ -9,7 +9,7 @@ The family-maintained successor to Wowfunhappy's *Mavericks Forever* OpenSSH.
 ## Download
 
 Two `.pkg` installers are published on the
-[latest release](https://github.com/ModernMavericks/openssh/releases/latest):
+[latest release](https://github.com/Mavergreen/openssh/releases/latest):
 
 | Installer | What it is |
 |---|---|
