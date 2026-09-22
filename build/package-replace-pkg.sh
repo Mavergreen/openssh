@@ -20,11 +20,11 @@ cp "$SELF/../scripts/postinstall" "$scr/postinstall"
 chmod +x "$scr/preinstall" "$scr/postinstall"
 
 comp="$OUT/openssh-replace-component.pkg"
-pkgbuild --root "$payload" --identifier dev.modernmavericks.openssh.replace \
+pkgbuild --root "$payload" --identifier dev.mavergreen.openssh.replace \
   --version "$FULL" --scripts "$scr" --install-location / "$comp"
 
 sh "$SHIPYARD_SCRIPTS/set_install_floor.sh" \
-  --identifier dev.modernmavericks.openssh.replace \
+  --identifier dev.mavergreen.openssh.replace \
   --title "Make OpenSSH for Mavericks the system default" \
   --component "$comp" --min-os 10.9.5 \
   --out "$OUT/OpenSSH-System-Replace-${FULL}.pkg"

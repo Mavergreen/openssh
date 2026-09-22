@@ -30,3 +30,17 @@ for hk in "$ROOT"/etc/ssh_host_*; do
   base="$(basename "$hk")"
   [ -e "$ROOT/usr/local/etc/$base" ] || cp -p "$hk" "$ROOT/usr/local/etc/$base"
 done
+
+# ONE-TIME MIGRATION off the ModernMavericks identity (flag day 2026-09-22).
+# DELETABLE once no pre-flag-day install survives (see shipyard SKILL.md "Consolidation backlog").
+#
+# This pkg's identifier moved from dev.modernmavericks.openssh.replace to
+# dev.mavergreen.openssh.replace, and to Installer a different identifier is a different package: the
+# old receipt would stay behind claiming openssh-mavericks-deactivate, which this pkg now owns. Forget
+# it on Installer's target volume ($3); with none (a test run), nothing is done. Only the RECEIPT goes:
+# the system paths above, the backup of the original OpenSSH and the migrated host keys carry no org
+# name and stay exactly as they are, so the replaced sshd keeps running through the upgrade.
+# Best-effort: never fail the install over a receipt.
+if [ -n "${3:-}" ]; then
+  pkgutil --volume "$3" --forget dev.modernmavericks.openssh.replace >/dev/null 2>&1 || true
+fi

@@ -26,7 +26,7 @@ SSH_ADD="${SSH_ADD:-$STAGE$PREFIX/bin/ssh-add}"
 [ -x "$AGENT" ] || { echo "not built ($AGENT) -- skipping"; exit 77; }
 [ -x "$SSH_ADD" ] || { echo "not built ($SSH_ADD) -- skipping"; exit 77; }
 
-LABEL="dev.modernmavericks.openssh-checkin-test.$$"
+LABEL="dev.mavergreen.openssh-checkin-test.$$"
 TMP="$(mktemp -d "${TMPDIR:-/tmp}/launchd-checkin.XXXXXX")"
 SOCK="$TMP/agent.sock"
 PLIST="$TMP/test.plist"

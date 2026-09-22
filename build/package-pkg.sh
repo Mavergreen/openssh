@@ -28,23 +28,26 @@ find "$STAGE" -name '._*' -delete 2>/dev/null || true # strip AppleDouble cruft 
 # Stage the updater .app + its daily-check LaunchAgent into the payload, and render the postinstall
 # that loads the agent (shared stage_updater.sh: --stage --app --app-dir --agent-label --scripts-out).
 SCR="$OUT/pkg-scripts"; rm -rf "$SCR"; mkdir -p "$SCR"
+# ONE-TIME MIGRATION off the ModernMavericks identity (flag day 2026-09-22): the preinstall forgets
+# this pkg's pre-rename receipt. DELETABLE with build/flag-day-preinstall.sh.
+sh "$SELF/flag-day-preinstall.sh" dev.modernmavericks.openssh "$SCR/preinstall"
 sh "$SHIPYARD_SCRIPTS/stage_updater.sh" \
   --stage "$STAGE" \
   --app "$UPD_APP" \
-  --app-dir "/Library/Application Support/ModernMavericks" \
-  --agent-label "dev.modernmavericks.openssh-updatecheck" \
+  --app-dir "/Library/Application Support/Mavergreen" \
+  --agent-label "dev.mavergreen.openssh-updatecheck" \
   --scripts-out "$SCR"
 
 # Flat component pkg over the whole payload (/usr/local/... + the updater .app + LaunchAgent),
 # with the postinstall that loads the update-check agent.
 COMP="$OUT/openssh-component.pkg"
-pkgbuild --root "$STAGE" --identifier dev.modernmavericks.openssh --version "$FULL" \
+pkgbuild --root "$STAGE" --identifier dev.mavergreen.openssh --version "$FULL" \
          --scripts "$SCR" --install-location / "$COMP"
 
 # Product archive with the hard 10.9.5 OS install floor (shared set_install_floor.sh -> productbuild).
 PKG="$OUT/OpenSSH-${FULL}.pkg"
 sh "$SHIPYARD_SCRIPTS/set_install_floor.sh" \
-  --identifier dev.modernmavericks.openssh \
+  --identifier dev.mavergreen.openssh \
   --title "OpenSSH for Mavericks" \
   --component "$COMP" --out "$PKG" \
   --min-os 10.9.5 --host-arch x86_64

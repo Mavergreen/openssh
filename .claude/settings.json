@@ -1,8 +1,8 @@
 {
   "extraKnownMarketplaces": {
-    "modernmavericks": {
+    "mavergreen": {
       "source": { "source": "github", "repo": "Mavergreen/shipyard" }
     }
   },
-  "enabledPlugins": { "modernmavericks@modernmavericks": true }
+  "enabledPlugins": { "mavergreen@mavergreen": true }
 }
