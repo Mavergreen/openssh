@@ -28,9 +28,6 @@ find "$STAGE" -name '._*' -delete 2>/dev/null || true # strip AppleDouble cruft 
 # Stage the updater .app + its daily-check LaunchAgent into the payload, and render the postinstall
 # that loads the agent (shared stage_updater.sh: --stage --app --app-dir --agent-label --scripts-out).
 SCR="$OUT/pkg-scripts"; rm -rf "$SCR"; mkdir -p "$SCR"
-# ONE-TIME MIGRATION off the ModernMavericks identity (flag day 2026-09-22): the preinstall forgets
-# this pkg's pre-rename receipt. DELETABLE with build/flag-day-preinstall.sh.
-sh "$SELF/flag-day-preinstall.sh" dev.modernmavericks.openssh "$SCR/preinstall"
 sh "$SHIPYARD_SCRIPTS/stage_updater.sh" \
   --stage "$STAGE" \
   --app "$UPD_APP" \
