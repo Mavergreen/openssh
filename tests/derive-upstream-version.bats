@@ -1,4 +1,5 @@
 #!/usr/bin/env bats
+# platform: host-agnostic
 # Verifies V_x_y_Pz (OpenSSH tag form) converts to the dotted portable version x.yPz -> x.ypz.
 
 setup() {

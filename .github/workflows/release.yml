@@ -6,10 +6,10 @@ name: release
 #                       auto-cut <upstream>-mavericks.1 (build/version.sh auto -> RELEASE=yes)
 #   - a *-mavericks.* tag : publish that exact version
 #   - workflow_dispatch with local_release=true : cut a local <upstream>-mavericks.(N+1) repackage
-# Two pkgs ship: the PRODUCT pkg (/usr/local OpenSSH + Sparkle updater .app, 10.9.5 floor) and the
-# system-REPLACEMENT pkg (backup + symlink activation). The PRODUCT pkg is EdDSA-signed and drives a
-# single Sparkle appcast.xml served from releases/latest/download/appcast.xml (this is a one-line
-# product, so there is no per-line feed release). Publishing is the shared publish-release.yml, which
+# Two pkgs ship: the PRODUCT pkg (/usr/local/mavergreen/openssh + Sparkle updater .app, 10.9.5 floor)
+# and the system-REPLACEMENT pkg (helper-driven symlink activation). The PRODUCT pkg is EdDSA-signed
+# and drives a single Sparkle feed served from releases/latest/download/openssh.xml (this is a
+# one-line product, so there is no per-line feed release). Publishing is the shared publish-release.yml, which
 # mints the tag itself (no PAT) and refuses an empty Release body. No 10.9 runner anywhere; the
 # published artifacts are re-validated on a real 10.9 box out-of-band (tests/smoke-mavericks.sh).
 
@@ -129,10 +129,10 @@ jobs:
         run: STAGE="$STAGE" sh tests/compat-guard.sh
 
       - name: Build updater .app
-        run: shipyard-cmake --preset cross && shipyard-cmake --build "$UPDATER_BUILD_DIR" --target OpenSSHUpdater
+        run: shipyard-cmake --preset cross && shipyard-cmake --build "$UPDATER_BUILD_DIR" --target openssh-updater
 
       - name: Package product pkg
-        run: OUT="$DIST" STAGE="$STAGE" UPD_APP="$UPDATER_BUILD_DIR/OpenSSHUpdater.app" sh build/package-pkg.sh
+        run: OUT="$DIST" STAGE="$STAGE" UPD_APP="$UPDATER_BUILD_DIR/openssh-updater.app" sh build/package-pkg.sh
 
       - name: Package replacement pkg
         run: OUT="$DIST" sh build/package-replace-pkg.sh
@@ -152,7 +152,7 @@ jobs:
             --tag "${{ steps.ver.outputs.tag }}" --version "${{ steps.ver.outputs.full }}" \
             --product OpenSSH --min-os 10.9.5 --out "$DIST/RELEASE_NOTES.md"
 
-      # Sign the PRODUCT pkg + render the single appcast.xml -- only when this run publishes. Fork PRs
+      # Sign the PRODUCT pkg + render the single openssh.xml feed -- only when this run publishes. Fork PRs
       # resolve release=no, so they never reach this step and never touch secrets. The enclosure points
       # at the release-asset download URL; the feed itself is served from releases/latest/download.
       - name: EdDSA-sign product pkg + render appcast
@@ -172,15 +172,15 @@ jobs:
           sh "$SHIPYARD_SCRIPTS/sign_and_appcast.sh" \
             --channel-title "Mavericks OpenSSH" --version "$VER" \
             --pkg-url "$base/$(basename "$PKG")" --notes-file "$DIST/RELEASE_NOTES.md" \
-            --pkg "$PKG" --min-os 10.9.5 > "$DIST/appcast.xml"
-          echo "=== appcast.xml ==="; cat "$DIST/appcast.xml"
+            --pkg "$PKG" --min-os 10.9.5 --product openssh --feed-dir "$DIST"
+          echo "=== openssh.xml ==="; cat "$DIST/openssh.xml"
 
       # Conformance: do the artifacts we are about to publish agree with each other and with the
       # family? Each piece is checked somewhere already -- the compat guard reads binaries,
       # set_install_floor stamps a floor, sign_and_appcast signs -- but nothing asserted they agree.
       # Gated like the signing step and run AFTER it: the checker cross-validates appcast<->pkg<->asset
       # and reads the fact stream on STDIN (a positional dist arg is ignored), so it needs the rendered
-      # $DIST/appcast.xml. The floor-less product pkg's minimum lives in that appcast.
+      # $DIST/openssh.xml. The floor-less product pkg's minimum lives in that feed.
       - name: Artifact conformance
         if: steps.ver.outputs.release == 'yes'
         run: |
@@ -192,7 +192,7 @@ jobs:
       # product has one tag line, so no --upstream-glob is needed (the script defaults to *-mavericks.*).
       - name: Assert appcast upgradeable
         if: steps.ver.outputs.release == 'yes'
-        run: sh "$SHIPYARD_SCRIPTS/assert_appcast_upgradeable.sh" --appcast "$DIST/appcast.xml" --version "${{ steps.ver.outputs.full }}"
+        run: sh "$SHIPYARD_SCRIPTS/assert_appcast_upgradeable.sh" --appcast "$DIST/openssh.xml" --version "${{ steps.ver.outputs.full }}"
 
       - name: The build must not have written into the source tree
         run: sh "$SHIPYARD_SCRIPTS/assert-tree-clean.sh"

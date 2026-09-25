@@ -1,4 +1,5 @@
 #!/bin/sh
+# platform: host-agnostic
 # 10.9's /System/Library/LaunchDaemons/ssh.plist names /usr/libexec/sshd-keygen-wrapper as the
 # Program for com.openssh.sshd, so the replacement pkg symlinks that path here: without this file
 # launchd's ssh job points at a dangling symlink and the host has no sshd at all.

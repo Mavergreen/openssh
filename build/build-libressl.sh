@@ -1,4 +1,5 @@
 #!/bin/sh
+# platform: macOS-only -- builds against fetch_sdk.sh's pinned Apple SDK and reads sysctl hw.ncpu
 # Build LibreSSL portable as a STATIC library against the pinned 10.9 SDK, into a build-local
 # prefix, for OpenSSH to link. Fetches upstream's own published SHA256 for the pinned version and
 # verifies against it. Sourced with --source-only to expose functions to tests. POSIX /bin/sh.

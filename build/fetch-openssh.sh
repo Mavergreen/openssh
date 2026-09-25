@@ -1,4 +1,5 @@
 #!/bin/sh
+# platform: host-agnostic
 # Fetch the OpenSSH portable release tarball named by the derived version, verify its detached
 # PGP signature against the pinned OpenSSH release-signing key (scripts/openssh-signing-key.asc),
 # record its sha256 in SHA256SUMS, and unpack it. Signer-identity model: the pinned key vouches

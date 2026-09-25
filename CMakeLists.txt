@@ -14,14 +14,12 @@ include(MavericksSparkle)
 mavericks_resolve_version(MAVOSSH_VERSION)   # <upstream>-mavericks.N, from the shared Config
 
 mavericks_add_updater_app(
-  NAME OpenSSHUpdater
+  PRODUCT openssh
   PRODUCT_NAME "Mavericks OpenSSH"
-  BUNDLE_ID dev.mavergreen.OpenSSHUpdater
-  FEED_URL "https://github.com/Mavergreen/openssh/releases/latest/download/appcast.xml"
   ALLOW_GENERIC   # ship the generic macOS app icon on purpose (no bespoke artwork; no Apple/OpenBSD mark)
   VERSION "${MAVOSSH_VERSION}"
   LOG_PREFIX "MavOpenSSHUpdater"
   CONFIRM_TITLE "Mavericks OpenSSH updated"
-  CONFIRM_BODY "OpenSSH for Mavericks was updated in /usr/local."
+  CONFIRM_BODY "OpenSSH for Mavericks in /usr/local/mavergreen/openssh was updated."
   # no PANE_HINT_KEY -> background-found updates post an NSUserNotification (CLI product)
 )

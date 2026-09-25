@@ -1,4 +1,5 @@
 #!/bin/sh
+# platform: host-agnostic
 # Thin wrapper: the logic lives in shipyard (scripts/version.sh) so it cannot drift.
 # UPSTREAM_VERSION is a build product written by derive-upstream-version.sh; ensure it exists first.
 set -eu

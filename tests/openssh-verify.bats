@@ -1,4 +1,5 @@
 #!/usr/bin/env bats
+# platform: host-agnostic
 # fetch-openssh derives the tarball name from the version and refuses a missing/mismatched sig.
 # These tests are gpg-free: the missing-signature path returns before gpg is invoked.
 

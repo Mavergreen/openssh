@@ -1,5 +1,6 @@
 #!/bin/sh
-# Assemble the PRODUCT pkg from the built /usr/local staging tree: stage the Sparkle updater
+# platform: macOS-only -- pkgbuild builds the component, and otool checks the updater's linkage
+# Assemble the PRODUCT pkg from the staged /usr/local/mavergreen/openssh tree: stage the Sparkle updater
 # .app + daily-check LaunchAgent (shared stage_updater.sh), pkgbuild the component, stamp the
 # 10.9.5 install floor (shared set_install_floor.sh -> productbuild), and record build-info.
 # POSIX /bin/sh.
@@ -17,26 +18,23 @@ OUT="${OUT:-$REPO_ROOT/dist}"; mkdir -p "$OUT"
 #           ($penv{TMPDIR}/mm-build/${sourceDirName}-cross, mavericks-presets.json) -- CMakePresets.json's
 #           "cross" preset inherits it and no longer pins its own binaryDir, so this default must agree
 #           with what `shipyard-cmake --preset cross` actually configures, not with a path in the tree.
-UPD_APP="${UPD_APP:-${TMPDIR:-/tmp}/mm-build/$(basename "$REPO_ROOT")-cross/OpenSSHUpdater.app}"
-[ -d "$UPD_APP" ] || { echo "FATAL: updater not built at $UPD_APP (shipyard-cmake --preset cross && shipyard-cmake --build \$UPDATER_BUILD_DIR --target OpenSSHUpdater)" >&2; exit 1; }
+UPD_APP="${UPD_APP:-${TMPDIR:-/tmp}/mm-build/$(basename "$REPO_ROOT")-cross/openssh-updater.app}"
+[ -d "$UPD_APP" ] || { echo "FATAL: updater not built at $UPD_APP (shipyard-cmake --preset cross && shipyard-cmake --build \$UPDATER_BUILD_DIR --target openssh-updater)" >&2; exit 1; }
 # The updater must NOT link the product it updates.
-otool -L "$UPD_APP/Contents/MacOS/OpenSSHUpdater" | grep -q '/usr/local/.*ssh' && { echo "FATAL: updater links the product" >&2; exit 1; } || true
+otool -L "$UPD_APP/Contents/MacOS/openssh-updater" | grep -q '/usr/local/mavergreen/openssh' && { echo "FATAL: updater links the product" >&2; exit 1; } || true
 
 export COPYFILE_DISABLE=1                              # no ._AppleDouble sidecars in the payload
 find "$STAGE" -name '._*' -delete 2>/dev/null || true # strip AppleDouble cruft before packaging
 
-# Stage the updater .app + its daily-check LaunchAgent into the payload, and render the postinstall
-# that loads the agent (shared stage_updater.sh: --stage --app --app-dir --agent-label --scripts-out).
-SCR="$OUT/pkg-scripts"; rm -rf "$SCR"; mkdir -p "$SCR"
-sh "$SHIPYARD_SCRIPTS/stage_updater.sh" \
-  --stage "$STAGE" \
-  --app "$UPD_APP" \
-  --app-dir "/Library/Application Support/Mavergreen" \
-  --agent-label "dev.mavergreen.openssh-updatecheck" \
-  --scripts-out "$SCR"
+SCR="$OUT/pkg-scripts"; rm -rf "$SCR"
+set --
+while IFS= read -r r; do
+  if [ -n "$r" ]; then set -- "$@" --replaces "$r"; fi
+done < "$REPO_ROOT/build/system-replaces"
+sh "$SHIPYARD_SCRIPTS/stage_product.sh" --stage "$STAGE" --product openssh --name "OpenSSH for Mavericks" \
+  --version "$FULL" --updater-app "$UPD_APP" \
+  --postinstall-hook "$REPO_ROOT/scripts/postinstall-hook.sh" --scripts-out "$SCR" "$@"
 
-# Flat component pkg over the whole payload (/usr/local/... + the updater .app + LaunchAgent),
-# with the postinstall that loads the update-check agent.
 COMP="$OUT/openssh-component.pkg"
 pkgbuild --root "$STAGE" --identifier dev.mavergreen.openssh --version "$FULL" \
          --scripts "$SCR" --install-location / "$COMP"
@@ -47,7 +45,7 @@ sh "$SHIPYARD_SCRIPTS/set_install_floor.sh" \
   --identifier dev.mavergreen.openssh \
   --title "OpenSSH for Mavericks" \
   --component "$COMP" --out "$PKG" \
-  --min-os 10.9.5 --host-arch x86_64
+  --min-os 10.9.5 --host-arch x86_64 --require-scripts
 rm -f "$COMP"   # intermediate: only the floored product archive ships
 
 # Record what this variant was built FROM (shared build-info.sh: <outfile> key=value ...).

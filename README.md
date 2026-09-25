@@ -13,35 +13,40 @@ Two `.pkg` installers are published on the
 
 | Installer | What it is |
 |---|---|
-| `OpenSSH-<version>.pkg` | **The product** — installs OpenSSH under `/usr/local`, overwrites nothing. |
+| `OpenSSH-<version>.pkg` | **The product** — installs OpenSSH under `/usr/local/mavergreen/openssh`, overwrites nothing. |
 | `OpenSSH-System-Replace-<version>.pkg` | **Optional add-on** — makes that build your *system* `ssh`/`sshd`. |
 
 (e.g. `OpenSSH-9.9p2-mavericks.1.pkg` and `OpenSSH-System-Replace-9.9p2-mavericks.1.pkg`.)
 
 ## 1. Install OpenSSH — `OpenSSH-<version>.pkg`
 
-Double-click it. OpenSSH installs under `/usr/local` and **overwrites nothing**. Put
-`/usr/local/bin` on your `PATH` to use the new `ssh`/`scp`/`sftp` (and `/usr/local/sbin/sshd`).
-A Sparkle updater keeps `/usr/local` current in the background.
+Double-click it. OpenSSH installs under `/usr/local/mavergreen/openssh` and **overwrites nothing**.
+The commands are on your `PATH` as `/usr/local/mavergreen/bin/ssh`, `/usr/local/mavergreen/bin/scp`,
+`/usr/local/mavergreen/bin/sftp`, and `/usr/local/mavergreen/sbin/sshd` — but come after `/usr/bin`
+unless System Replace (step 2) is installed. Configs and host keys live in
+`/usr/local/mavergreen/var/openssh` and survive upgrades. A Sparkle updater keeps the tree current
+in the background.
 
 On its own, this does **not** change your Mac's default `ssh` or the built-in `sshd` — it lives
-alongside them under `/usr/local`.
+alongside them under `/usr/local/mavergreen/openssh`.
 
 ## 2. (Optional) Make it the system OpenSSH — `OpenSSH-System-Replace-<version>.pkg`
 
 Want the modern build to *be* the default `ssh` and the server the built-in launchd job runs?
 **Install the product (step 1) first**, then double-click this second installer. It:
 
-- backs up your existing OpenSSH (binaries, configs, host keys) to `/var/backups/vanilla-openssh`;
-- symlinks the system `/usr` + `/etc` OpenSSH paths to the copies under `/usr/local`;
+- saves your existing OpenSSH (binaries, configs, host keys) aside;
+- symlinks the system `/usr` + `/etc` OpenSSH paths to the copies under
+  `/usr/local/mavergreen/openssh`;
 - so the untouched `/System/Library/LaunchDaemons/ssh.plist` job now runs the modern `sshd`, and
   the default `ssh` in your `PATH` is the modern one.
 
 **Order matters:** the product must be installed first — this installer only creates symlinks that
-point *into* `/usr/local`.
+point *into* `/usr/local/mavergreen/openssh`.
 
-**Reverting:** run `sudo /usr/local/libexec/openssh-mavericks-deactivate`, which removes the
-symlinks and restores the originals from `/var/backups/vanilla-openssh`.
+**Reverting:** run `sudo mavergreen system-restore openssh`, which removes the symlinks and
+restores the saved originals. To remove OpenSSH for Mavericks entirely, run
+`sudo mavergreen uninstall openssh` (this restores the system paths first).
 
 ## Credit
 

@@ -1,4 +1,5 @@
 #!/bin/sh
+# platform: host-agnostic
 # Apply the vendored Apple-restoration patches to an unpacked OpenSSH source tree and drop in
 # keychain.{h,m}, then patch Makefile.in to build keychain.o. POSIX /bin/sh; 10.9-safe patch
 # (Apple patch 2.0 -- has -F fuzz, no --merge).

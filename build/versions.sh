@@ -1,4 +1,5 @@
 #!/bin/sh
+# platform: host-agnostic
 # Master versions/paths file. Sourced, not executed. Callers may pre-export REPO_ROOT (e.g. a
 # test under tests/); otherwise it defaults from $0, which is correct when sourced by a script
 # that lives in build/. This ${REPO_ROOT:=...} idiom matches the golang template and lets any
@@ -16,8 +17,8 @@ OPENSSH_VERSION="$(cat "$REPO_ROOT/UPSTREAM_VERSION")"; export OPENSSH_VERSION  
 OPENSSH_TAG="$(tr -d ' \t\r\n' < "$REPO_ROOT/components/openssh/version")"; export OPENSSH_TAG
 
 # --- Layout ---
-PREFIX=/usr/local; export PREFIX
-SYSCONFDIR=/usr/local/etc; export SYSCONFDIR
+PREFIX=/usr/local/mavergreen/openssh; export PREFIX
+SYSCONFDIR=/usr/local/mavergreen/var/openssh; export SYSCONFDIR
 
 # --- Build workspace (heavy I/O off the NFS tree) ---
 : "${WORK:=${HOME}/.cache/mavericks-openssh/work}"; export WORK

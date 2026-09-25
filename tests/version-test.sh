@@ -1,4 +1,5 @@
 #!/bin/sh
+# platform: host-agnostic
 # Verifies build/version.sh auto emits <upstream>-mavericks.N AND that the upstream value is
 # read from UPSTREAM_VERSION (not hardcoded): overriding UPSTREAM_VERSION changes the output.
 set -eu

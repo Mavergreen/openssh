@@ -1,4 +1,5 @@
 #!/bin/sh
+# platform: macOS-only -- launchctl loads a real launchd job to test the agent's check-in
 # Standing guard on the ssh-agent launchd check-in: launchd starts the agent as
 # `ssh-agent -l` (see /System/Library/LaunchAgents/org.openbsd.ssh-agent.plist), and the agent
 # must check in and then ANSWER a client on the socket launchd handed it.

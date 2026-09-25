@@ -1,0 +1,12 @@
+/usr/bin/ssh=bin/ssh
+/usr/bin/scp=bin/scp
+/usr/bin/sftp=bin/sftp
+/usr/bin/ssh-add=bin/ssh-add
+/usr/bin/ssh-agent=bin/ssh-agent
+/usr/bin/ssh-keygen=bin/ssh-keygen
+/usr/bin/ssh-keyscan=bin/ssh-keyscan
+/usr/sbin/sshd=sbin/sshd
+/usr/libexec/sftp-server=libexec/sftp-server
+/usr/libexec/ssh-keysign=libexec/ssh-keysign
+/usr/libexec/ssh-pkcs11-helper=libexec/ssh-pkcs11-helper
+/usr/libexec/sshd-keygen-wrapper=libexec/sshd-keygen-wrapper

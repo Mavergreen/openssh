@@ -1,4 +1,5 @@
 #!/bin/sh
+# platform: macOS-only -- drives assert_binary_compatible.sh, which reads Mach-O via otool/lipo
 # Standing equivalence gate: every shipped OpenSSH binary must be 10.9-safe (x86_64, minos
 # 10.9, no post-10.9 undefined imports/selectors). Delegates to the INSTALLED
 # mavericks-shipyard assert_binary_compatible.sh (which takes the binaries positionally and

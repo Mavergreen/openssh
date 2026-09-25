@@ -1,4 +1,5 @@
 #!/bin/sh
+# platform: macOS-only -- builds against fetch_sdk.sh's pinned Apple SDK and reads sysctl hw.ncpu
 # Configure + build OpenSSH against the static LibreSSL and the pinned 10.9 SDK, re-adding the
 # Apple integrations, and stage into a DESTDIR laid out for /usr/local. Cross-built on modern
 # macOS in CI; targets 10.9 via -isysroot <SDK> + -mmacosx-version-min=10.9 and Apple clang
@@ -46,7 +47,10 @@ sed "s|@PREFIX@|$PREFIX|g" "$SELF/../scripts/sshd-keygen-wrapper.in" \
 chmod +x "$STAGE$PREFIX/libexec/sshd-keygen-wrapper"
 
 # Config munge: match Wowfunhappy -- UsePAM + interop shims (idempotent appends).
-CONF="$STAGE$SYSCONFDIR"
+CONF="$STAGE$PREFIX/share/openssh"
+mkdir -p "$CONF"
+for f in ssh_config sshd_config moduli; do mv "$STAGE$SYSCONFDIR/$f" "$CONF/$f"; done
+rm -rf "$STAGE/usr/local/mavergreen/var"
 grep -q '^UsePAM yes' "$CONF/sshd_config" || echo 'UsePAM yes' >> "$CONF/sshd_config"
 for f in sshd_config ssh_config; do
   grep -q '^HostKeyAlgorithms +ssh-rsa'        "$CONF/$f" || echo 'HostKeyAlgorithms +ssh-rsa'        >> "$CONF/$f"

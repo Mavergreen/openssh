@@ -1,4 +1,5 @@
 #!/bin/sh
+# platform: host-agnostic
 # Derive the dotted OpenSSH portable version (e.g. 9.9p2) from the upstream tag form
 # (V_9_9_P2) pinned in components/openssh/version, and write it to UPSTREAM_VERSION.
 # Conversion: strip leading "V_", "_P" -> "p", remaining "_" -> ".".

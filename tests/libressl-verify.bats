@@ -1,4 +1,5 @@
 #!/usr/bin/env bats
+# platform: host-agnostic
 # The LibreSSL checksum gate must reject a mismatched tarball and accept a matching one.
 
 setup() {
