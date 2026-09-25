@@ -35,9 +35,11 @@ alongside them under `/usr/local/mavergreen/openssh`.
 Want the modern build to *be* the default `ssh` and the server the built-in launchd job runs?
 **Install the product (step 1) first**, then double-click this second installer. It:
 
-- saves your existing OpenSSH (binaries, configs, host keys) aside;
-- symlinks the system `/usr` + `/etc` OpenSSH paths to the copies under
+- saves your existing OpenSSH binaries aside (the 12 `/usr/bin`, `/usr/sbin` and `/usr/libexec`
+  paths OpenSSH ships) and symlinks each of them to the matching copy under
   `/usr/local/mavergreen/openssh`;
+- leaves `/etc` untouched — the modern build reads its config and host keys from
+  `/usr/local/mavergreen/var/openssh`, not `/etc`;
 - so the untouched `/System/Library/LaunchDaemons/ssh.plist` job now runs the modern `sshd`, and
   the default `ssh` in your `PATH` is the modern one.
 

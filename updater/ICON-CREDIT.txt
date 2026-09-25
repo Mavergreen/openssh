@@ -1,6 +1,6 @@
 Updater icon: the GENERIC macOS application icon, on purpose.
 
-OpenSSHUpdater ships no bundled icon (empty CFBundleIconFile), so macOS renders it with the
+openssh-updater ships no bundled icon (empty CFBundleIconFile), so macOS renders it with the
 standard generic application icon. This is the explicit opt-in: CMakeLists.txt passes
 ALLOW_GENERIC to mavericks_add_updater_app (equivalently -DMAVERICKS_ALLOW_GENERIC_ICON=ON).
 

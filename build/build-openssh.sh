@@ -1,9 +1,9 @@
 #!/bin/sh
 # platform: macOS-only -- builds against fetch_sdk.sh's pinned Apple SDK and reads sysctl hw.ncpu
 # Configure + build OpenSSH against the static LibreSSL and the pinned 10.9 SDK, re-adding the
-# Apple integrations, and stage into a DESTDIR laid out for /usr/local. Cross-built on modern
-# macOS in CI; targets 10.9 via -isysroot <SDK> + -mmacosx-version-min=10.9 and Apple clang
-# (/usr/bin/clang) for the ObjC keychain code. POSIX /bin/sh.
+# Apple integrations, and stage into a DESTDIR laid out for /usr/local/mavergreen/openssh.
+# Cross-built on modern macOS in CI; targets 10.9 via -isysroot <SDK> + -mmacosx-version-min=10.9
+# and Apple clang (/usr/bin/clang) for the ObjC keychain code. POSIX /bin/sh.
 set -eu
 SELF="$(cd "$(dirname "$0")" && pwd)"
 . "$SELF/versions.sh"
@@ -42,7 +42,7 @@ APPLE_DEFS="-D__APPLE_KEYCHAIN__ -D__APPLE_MEMBERSHIP__ -D__APPLE_LAUNCHD__ -D__
 # symlinks into our prefix -- upstream OpenSSH has no such file, so we ship one or launchd's ssh
 # job points at nothing (tests/replace-links-resolve.sh is the standing check).
 mkdir -p "$STAGE$PREFIX/libexec"
-sed "s|@PREFIX@|$PREFIX|g" "$SELF/../scripts/sshd-keygen-wrapper.in" \
+sed -e "s|@PREFIX@|$PREFIX|g" -e "s|@SYSCONFDIR@|$SYSCONFDIR|g" "$SELF/../scripts/sshd-keygen-wrapper.in" \
   > "$STAGE$PREFIX/libexec/sshd-keygen-wrapper"
 chmod +x "$STAGE$PREFIX/libexec/sshd-keygen-wrapper"
 

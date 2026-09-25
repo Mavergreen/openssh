@@ -6,10 +6,26 @@
 #
 # Apple's original generated only the host key types of its day. ssh-keygen -A creates every type
 # this OpenSSH supports (rsa, ecdsa, ed25519) and leaves existing keys alone, so a host that has
-# been served by this package keeps its identity and gains the modern keys.
+# been served by this package keeps its identity and gains the modern keys. But System Replace can
+# be installed AFTER Apple's own sshd already minted keys in /etc (e.g. Remote Login was turned on
+# first): ssh-keygen -A only ever looks in @SYSCONFDIR@, so any /etc keys must be copied in here,
+# once, before it runs, or the host's identity changes the first time sshd starts under us.
 #
 # launchd execs us with the plist's ProgramArguments, and the kernel drops argv[0] for an
-# interpreted script, so "$@" is the sshd arguments (-i) and nothing else.
-# @PREFIX@ is substituted at stage time from $PREFIX. POSIX /bin/sh.
+# interpreted script, so "$@" is the sshd arguments (-i) and nothing else. _ETC and _STATE default
+# to the real system paths; they exist only so a test can point them at a scratch dir instead --
+# runtime behavior (launchd's real invocation, where neither is set) is unchanged.
+# @PREFIX@ and @SYSCONFDIR@ are substituted at stage time from $PREFIX and $SYSCONFDIR.
+# POSIX /bin/sh.
+_ETC="${_ETC:-/etc}"
+_STATE="${_STATE:-@SYSCONFDIR@}"
+mkdir -p "$_STATE"
+for _hk in "$_ETC"/ssh_host_*; do
+  [ -e "$_hk" ] || continue
+  _base="${_hk##*/}"
+  [ -e "$_STATE/$_base" ] && continue
+  cp -p "$_hk" "$_STATE/$_base" || continue
+  case "$_base" in *.pub) : ;; *) chmod 600 "$_STATE/$_base" ;; esac
+done
 @PREFIX@/bin/ssh-keygen -A >/dev/null 2>&1
 exec @PREFIX@/sbin/sshd "$@"

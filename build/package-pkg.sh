@@ -1,9 +1,10 @@
 #!/bin/sh
 # platform: macOS-only -- pkgbuild builds the component, and otool checks the updater's linkage
-# Assemble the PRODUCT pkg from the staged /usr/local/mavergreen/openssh tree: stage the Sparkle updater
-# .app + daily-check LaunchAgent (shared stage_updater.sh), pkgbuild the component, stamp the
-# 10.9.5 install floor (shared set_install_floor.sh -> productbuild), and record build-info.
-# POSIX /bin/sh.
+# Assemble the PRODUCT pkg from the staged /usr/local/mavergreen/openssh tree: shared
+# stage_product.sh stages the Sparkle updater .app + LaunchAgent, writes the manifest (with this
+# product's --replaces entries and the postinstall hook), and renders the pkgbuild scripts; then
+# pkgbuild builds the component and shared set_install_floor.sh -> productbuild stamps the 10.9.5
+# install floor, and build-info.sh records what was built. POSIX /bin/sh.
 set -eu
 SELF="$(cd "$(dirname "$0")" && pwd)"
 . "$SELF/versions.sh"                                  # exports SHIPYARD, PREFIX, WORK, OPENSSH_VERSION, LIBRESSL_VERSION, REPO_ROOT
