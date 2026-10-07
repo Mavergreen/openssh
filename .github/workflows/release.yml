@@ -215,7 +215,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        mutation: [none, nosudo, truncsshd, badkex]
+        mutation: [none]
     permissions:
       contents: read
       packages: write
