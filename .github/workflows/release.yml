@@ -10,8 +10,9 @@ name: release
 # and the system-REPLACEMENT pkg (helper-driven symlink activation). The PRODUCT pkg is EdDSA-signed
 # and drives a single Sparkle feed served from releases/latest/download/openssh.xml (this is a
 # one-line product, so there is no per-line feed release). Publishing is the shared publish-release.yml, which
-# mints the tag itself (no PAT) and refuses an empty Release body. No 10.9 runner anywhere; the
-# published artifacts are re-validated on a real 10.9 box out-of-band (tests/smoke-mavericks.sh).
+# mints the tag itself (no PAT) and refuses an empty Release body. No 10.9 build runner anywhere;
+# the product pkg is installed and smoke-tested on a real 10.9.5 guest before anything is published
+# (the on-mavericks job: Mavergreen/mavericks-vm, tests/smoke-mavericks.sh).
 
 on:
   push:
@@ -202,6 +203,34 @@ jobs:
           name: openssh-dist
           path: ${{ env.DIST }}/*
 
+  # spec: tests/smoke-mavericks.sh -- the product pkg, installed the way a user installs it, on a
+  #       real 10.9.5 guest (Mavergreen/mavericks-vm), and its ssh made to reach its own sshd. A
+  #       skip (77) fails here: this job exists so that it runs. publish waits for it. A fork's pull
+  #       request gets no secrets, so cannot boot the guest, and never publishes: it skips this.
+  on-mavericks:
+    needs: [build]
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: openssh-dist
+          path: dist
+      - uses: Mavergreen/mavericks-vm@v1
+        with:
+          image-key: ${{ secrets.MAVERICKS_VM_KEY }}
+          copyback: false
+          debug-on-error: true
+          run: |
+            pkg="$(ls dist/OpenSSH-*.pkg | grep -v System-Replace | head -n 1)"
+            sudo installer -pkg "$pkg" -target /
+            status=0; sudo sh tests/smoke-mavericks.sh || status=$?
+            [ "$status" -eq 0 ] || { echo "smoke-mavericks.sh exited $status (77 is a skip, a failure here)"; exit 1; }
+
   # Before anything is published: no log of this run, and no file about to be released, carries a
   # piece of the signing key. shipyard's publish-release.yml looks for this job's record on any signed
   # release; it cannot run the scan itself (reading job logs needs actions: read).
@@ -218,7 +247,7 @@ jobs:
       SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
 
   publish:
-    needs: [build, scan]
+    needs: [build, scan, on-mavericks]
     if: needs.build.outputs.publish == 'true'
     permissions:
       contents: write
