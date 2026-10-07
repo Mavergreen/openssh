@@ -211,6 +211,11 @@ jobs:
     needs: [build]
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
+    # gate-proof (throwaway, never merged): one deliberate breakage per leg
+    strategy:
+      fail-fast: false
+      matrix:
+        mutation: [none, nosudo, truncsshd, badkex]
     permissions:
       contents: read
       packages: write
@@ -221,14 +226,24 @@ jobs:
           name: openssh-dist
           path: dist
       - uses: Mavergreen/mavericks-vm@v1
+        env:
+          MUTATION: ${{ matrix.mutation }}
         with:
           image-key: ${{ secrets.MAVERICKS_VM_KEY }}
           copyback: false
           debug-on-error: true
+          envs: MUTATION
           run: |
             pkg="$(ls dist/OpenSSH-*.pkg | grep -v System-Replace | head -n 1)"
             sudo installer -pkg "$pkg" -target /
-            status=0; sudo sh tests/smoke-mavericks.sh || status=$?
+            echo "gate-proof mutation: $MUTATION"
+            case "$MUTATION" in
+              truncsshd) sudo sh -c ': > /usr/local/mavergreen/openssh/sbin/sshd' ;;
+              badkex) echo 'KexAlgorithms diffie-hellman-group14-sha256' | sudo tee -a /usr/local/mavergreen/var/openssh/sshd_config > /dev/null
+                      sudo mkdir -p /var/root/.ssh && echo 'KexAlgorithms curve25519-sha256' | sudo tee /var/root/.ssh/config > /dev/null ;;
+            esac
+            smoke="sudo sh"; [ "$MUTATION" = nosudo ] && smoke="sh"
+            status=0; $smoke tests/smoke-mavericks.sh || status=$?
             [ "$status" -eq 0 ] || { echo "smoke-mavericks.sh exited $status (77 is a skip, a failure here)"; exit 1; }
 
   # Before anything is published: no log of this run, and no file about to be released, carries a
@@ -255,3 +270,13 @@ jobs:
     with:
       version: ${{ needs.build.outputs.version }}
       artifact: openssh-dist
+
+  # gate-proof (throwaway): shaped as publish is -- needs on-mavericks, an if: with no status
+  # function -- so whether it runs is whether publish would (scan, skipped on a pull request,
+  # would skip it regardless, so it is left out)
+  publish-probe:
+    needs: [build, on-mavericks]
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "publish would have run"
