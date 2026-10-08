@@ -203,8 +203,9 @@ jobs:
           name: openssh-dist
           path: ${{ env.DIST }}/*
 
-  # spec: tests/smoke-mavericks.sh -- the product pkg, installed the way a user installs it, on a
-  #       real 10.9.5 guest (Mavergreen/mavericks-vm), and its ssh made to reach its own sshd. A
+  # spec: tests/smoke-mavericks.sh, tests/apple-patches-mavericks.sh -- the product pkg, installed
+  #       the way a user installs it, on a real 10.9.5 guest (Mavergreen/mavericks-vm): its ssh made
+  #       to reach its own sshd, and the Apple patches' behaviours exercised. A
   #       skip (77) fails here: this job exists so that it runs. publish waits for it. A fork's pull
   #       request gets no secrets, so cannot boot the guest, and never publishes: it skips this.
   on-mavericks:
@@ -228,8 +229,10 @@ jobs:
           run: |
             pkg="$(ls dist/OpenSSH-*.pkg | grep -v System-Replace | head -n 1)"
             sudo installer -pkg "$pkg" -target /
-            status=0; sudo sh tests/smoke-mavericks.sh || status=$?
-            [ "$status" -eq 0 ] || { echo "smoke-mavericks.sh exited $status (77 is a skip, a failure here)"; exit 1; }
+            for t in smoke-mavericks.sh apple-patches-mavericks.sh; do
+              status=0; sudo sh "tests/$t" || status=$?
+              [ "$status" -eq 0 ] || { echo "$t exited $status (77 is a skip, a failure here)"; exit 1; }
+            done
 
   # Before anything is published: no log of this run, and no file about to be released, carries a
   # piece of the signing key. shipyard's publish-release.yml looks for this job's record on any signed

@@ -100,26 +100,30 @@
  	);
  }
  
-@@ -836,7 +884,18 @@
+@@ -832,6 +880,22 @@
  
- 	skprovider = getenv("SSH_SK_PROVIDER");
+ 	log_init(__progname, log_level, log_facility, 1);
  
 +#ifdef __APPLE_KEYCHAIN__
++	/*
++	 * Apple's long options. getopt() below is getopt_long() with these, so
++	 * the option string in that call stays upstream's own, whatever it
++	 * becomes: this hunk never carries a copy of it.
++	 */
 +	int load_keychain = 0;
 +	struct option longopts[] = {
 +		{ "apple-use-keychain", no_argument, &use_keychain, 1 },
 +		{ "apple-load-keychain", no_argument, &load_keychain, 1 },
 +		{ NULL, 0, NULL, 0 }
 +	};
-+	while ((ch = getopt_long(argc, argv,
-+	    "vkKlLNCcdDTxXE:e:h:H:M:m:Qqs:S:t:", longopts, NULL)) != -1) {
-+#else
- 	while ((ch = getopt(argc, argv, "vkKlLNCcdDTxXE:e:h:H:M:m:Qqs:S:t:")) != -1) {
++#undef getopt
++#define getopt(argc, argv, opts) getopt_long(argc, argv, opts, longopts, NULL)
 +#endif
- 		switch (ch) {
- 		case 'v':
- 			if (log_level == SYSLOG_LEVEL_INFO)
-@@ -919,6 +978,11 @@
++
+ 	setvbuf(stdout, NULL, _IOLBF, 0);
+ 
+ 	skprovider = getenv("SSH_SK_PROVIDER");
+@@ -919,6 +983,11 @@
  		case 'T':
  			Tflag = 1;
  			break;
@@ -131,7 +135,7 @@
  		default:
  			usage();
  			ret = 1;
-@@ -943,6 +1007,33 @@
+@@ -943,6 +1012,33 @@
  		exit(2);
  	}
  

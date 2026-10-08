@@ -1,16 +1,17 @@
 --- ssh-agent.c.original
 +++ ssh-agent.c
-@@ -62,6 +62,9 @@
- #include <limits.h>
- #include <time.h>
- #include <unistd.h>
+@@ -35,6 +35,10 @@
+  */
+ 
+ #include "includes.h"
++/* First, after includes.h: a line every release keeps, unlike the system includes below. */
 +#ifdef __APPLE_LAUNCHD__
 +#include <launch.h>
 +#endif
- #include <util.h>
  
- #include "xmalloc.h"
-@@ -2253,6 +2256,9 @@
+ #include <sys/types.h>
+ #include <sys/time.h>
+@@ -2253,6 +2257,9 @@
  {
  	int c_flag = 0, d_flag = 0, D_flag = 0, k_flag = 0;
  	int s_flag = 0, T_flag = 0, u_flag = 0, U_flag = 0;
@@ -20,19 +21,29 @@
  	int sock = -1, ch, result, saved_errno;
  	pid_t pid;
   	char *homedir = NULL, *shell, *format, *pidstr, *agentsocket = NULL;
-@@ -2291,7 +2297,11 @@
+@@ -2288,6 +2295,21 @@
+ 		fatal("%s: getrlimit: %s", __progname, strerror(errno));
+ #endif
+ 
++#ifdef __APPLE_LAUNCHD__
++	/*
++	 * Apple's -l. getopt() below gets upstream's own option string with "l"
++	 * joined to it, whatever that string becomes: this hunk never carries a
++	 * copy of it. (A macro does not expand inside itself: the inner getopt
++	 * is the real one.)
++	 */
++#undef getopt
++#ifdef HAVE_GETOPT_OPTRESET
++#define getopt(ac, av, opts) getopt(ac, av, opts "l")
++#else
++#define getopt(ac, av, opts) BSDgetopt(ac, av, opts "l")	/* as defines.h maps it */
++#endif
++#endif
++
  	__progname = ssh_get_progname(av[0]);
  	seed_rng();
  
-+#ifdef __APPLE_LAUNCHD__
-+	while ((ch = getopt(ac, av, "cDdksTuUVE:a:O:P:t:l")) != -1) {
-+#else
- 	while ((ch = getopt(ac, av, "cDdksTuUVE:a:O:P:t:")) != -1) {
-+#endif
- 		switch (ch) {
- 		case 'E':
- 			fingerprint_hash = ssh_digest_alg_by_name(optarg);
-@@ -2324,6 +2334,11 @@
+@@ -2324,6 +2346,11 @@
  				fatal("-P option already specified");
  			allowed_providers = xstrdup(optarg);
  			break;
@@ -44,7 +55,7 @@
  		case 's':
  			if (c_flag)
  				usage();
-@@ -2490,6 +2505,77 @@
+@@ -2490,6 +2517,77 @@
  		umask(prev_mask);
  	}
  
@@ -122,7 +133,7 @@
  	closefrom(sock == -1 ? STDERR_FILENO + 1 : sock + 1);
  
  	/*
-@@ -2584,6 +2670,9 @@
+@@ -2584,6 +2682,9 @@
  	pkcs11_init(0);
  #endif
  	new_socket(AUTH_SOCKET, sock);
