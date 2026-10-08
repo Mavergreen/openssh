@@ -14,10 +14,27 @@
 #   usage: apply-patches.sh <openssh-src-dir>
 set -eu
 
-# $1 = source dir, $2 = patch, $3 = strip level. Fails, naming the patch, on a rejected hunk.
+# $1 = source dir, $2 = patch, $3 = strip level. 0 when the patch applies with no fuzz at all, tried
+# on scratch copies of the files it names. patch's exit status is the one signal every patch gives:
+# macOS's says nothing of fuzz in its output, GNU's says "with fuzz N".
+fuzz_free() {
+  scratch="$(mktemp -d "${TMPDIR:-/tmp}/apply-patches.XXXXXX")"
+  for f in $(sed -n 's/^+++ \([^	 ]*\).*/\1/p' "$2"); do
+    n="$3"; while [ "$n" -gt 0 ]; do f="${f#*/}"; n=$((n - 1)); done
+    mkdir -p "$scratch/$(dirname "$f")"
+    cp "$1/$f" "$scratch/$f" 2>/dev/null || :
+  done
+  rc=0; (cd "$scratch" && patch "-p$3" -F0 < "$2" > /dev/null 2>&1) || rc=$?
+  rm -rf "$scratch"
+  return "$rc"
+}
+
+# $1 = source dir, $2 = patch, $3 = strip level. Fails, naming the patch, on a rejected hunk; warns,
+# naming it, when it applies only with fuzz.
 apply_one() {
   name="$(basename "$2")"
   echo ">> applying $name (-p$3)"
+  clean=yes; fuzz_free "$1" "$2" "$3" || clean=no
   # -F2, patch's own default: fuzz past it would let a hunk with three lines of context apply with
   # none of them matching, at its old line number -- a silent misplacement, not a failure.
   if ! out="$(cd "$1" && patch "-p$3" -F2 < "$2" 2>&1)"; then
@@ -26,9 +43,9 @@ apply_one() {
     return 1
   fi
   printf '%s\n' "$out"
-  case "$out" in
-    *fuzz*) echo "::warning::$name applied only with fuzz: upstream moved around it; refresh it before a hunk is rejected" ;;
-  esac
+  if [ "$clean" = no ]; then
+    echo "::warning::$name applied only with fuzz: upstream moved around it; refresh it before a hunk is rejected"
+  fi
 }
 
 # $1 = source dir. keychain.o first in LIBSSH_OBJS, by its one line, or a failure naming it.
