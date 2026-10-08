@@ -7,7 +7,8 @@
 set -eu
 sw="$(sw_vers -productVersion 2>/dev/null || echo unknown)"
 case "$sw" in 10.9*) : ;; *) echo "not 10.9 ($sw) -- skipping"; exit 77;; esac
-B=/usr/local/mavergreen/openssh/bin; SB=/usr/local/mavergreen/openssh/sbin
+# OPENSSH_BIN, OPENSSH_SBIN: another install to exercise (default: the product's)
+B="${OPENSSH_BIN:-/usr/local/mavergreen/openssh/bin}"; SB="${OPENSSH_SBIN:-/usr/local/mavergreen/openssh/sbin}"
 [ -x "$B/ssh-add" ] || { echo "product not installed -- skipping"; exit 77; }
 [ "$(id -u)" = 0 ] || { echo "not root -- skipping"; exit 77; }
 
@@ -22,22 +23,24 @@ fail() {
 # 10.9 has no timeout(1); perl's alarm ends a hung command with SIGALRM (status 142).
 within() { perl -e '$t = shift; alarm $t; exec @ARGV or die "exec $ARGV[0]: $!\n"' "$@"; }
 
-# 1. ssh-add's --apple-use-keychain and --apple-load-keychain are options it parses: with no agent,
-#    it complains about the agent, never about the option.
-parses_apple_options() {  # $1 = an ssh-add; 0 when both long options parse
-  for opt in --apple-load-keychain "--apple-use-keychain /nonexistent"; do
-    # shellcheck disable=SC2086 # the second option carries its file argument
-    SSH_AUTH_SOCK='' within 10 "$1" $opt > "$T/ssh-add.log" 2>&1 || true
-    if grep -qiE 'illegal option|unrecognized option|invalid option' "$T/ssh-add.log"; then return 1; fi
-    grep -qi 'agent' "$T/ssh-add.log" || return 1
-  done
+# 1. ssh-add's --apple-use-keychain and --apple-load-keychain are options it parses. With an agent
+#    running, so that ssh-add gets as far as its options (a missing agent is reported first, and
+#    would mask a missing option), it never complains about the option.
+eval "$(within 10 "$B/ssh-agent" -s)" > /dev/null || fail "could not start an ssh-agent for the ssh-add checks"
+parses() {  # $1 = an option, then any argument it takes; 0 when the product's ssh-add parses it
+  within 10 "$B/ssh-add" "$@" > "$T/ssh-add.log" 2>&1 || true
+  if grep -qiE 'illegal option|unrecognized option|invalid option|usage:' "$T/ssh-add.log"; then return 1; fi
+  if grep -qi 'Could not open a connection' "$T/ssh-add.log"; then return 1; fi
 }
-parses_apple_options "$B/ssh-add" || fail "ssh-add does not parse --apple-use-keychain and --apple-load-keychain"
+parses --apple-load-keychain || fail "ssh-add does not parse --apple-load-keychain"
+parses --apple-use-keychain /nonexistent || fail "ssh-add does not parse --apple-use-keychain"
+# The control: an option nobody defined must fail the same check, on the same ssh-add, or the check
+# could not tell a parsed option from an unknown one. (No unpatched ssh-add can be counted on: the
+# guest's own /usr/bin/ssh-add is already the family's.)
+if parses --apple-not-an-option; then fail "the check passed an option ssh-add has not got: it tells nothing"; fi
 within 10 "$B/ssh-add" -Z > "$T/ssh-add-usage.log" 2>&1 || true
 grep -q -- '--apple-use-keychain' "$T/ssh-add-usage.log" || fail "ssh-add's usage does not list --apple-use-keychain"
-# The control: 10.9's own ssh-add predates those options, so this check must fail it -- or it
-# could not tell a patched ssh-add from an unpatched one.
-if parses_apple_options /usr/bin/ssh-add; then fail "the check passed 10.9's own ssh-add too: it tells nothing"; fi
+kill "$SSH_AGENT_PID" 2>/dev/null || true
 rm -f "$T"/ssh-add.log
 
 # 2. ssh-agent's -l is the launchd mode: outside launchd it fails checking in, never as an option.
@@ -55,7 +58,9 @@ echo maybe
 EOF
 chmod 755 "$T/askpass"
 port=2223
-"$SB/sshd" -d -p "$port" -o UsePAM=no -h /usr/local/mavergreen/var/openssh/ssh_host_rsa_key > "$T/sshd.log" 2>&1 &
+# A host key of its own, so the check does not depend on where an install keeps its keys.
+within 30 "$B/ssh-keygen" -q -t ed25519 -N '' -f "$T/hostkey" > "$T/ssh-keygen.log" 2>&1 || fail "ssh-keygen could not make a host key"
+"$SB/sshd" -d -p "$port" -o UsePAM=no -h "$T/hostkey" > "$T/sshd.log" 2>&1 &
 pid=$!; sleep 2
 kill -0 "$pid" 2>/dev/null || fail "sshd exited before the client connected"
 st=0
