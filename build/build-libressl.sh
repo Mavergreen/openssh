@@ -30,7 +30,7 @@ libressl_expected_sha() {
   # Field-split gives: $1=SHA256  $2=(<file>)  $3="="  $4=<hex>. Match $2 as the exact literal
   # "(<file>)" (string compare, no regex, so a dot in the version can't act as a wildcard) and
   # emit only $4.
-  _sha="$(curl -fsSL "$LIBRESSL_BASE_URL/SHA256" \
+  _sha="$(shipyard_curl "$LIBRESSL_BASE_URL/SHA256" - \
     | awk -v tok="($_want_file)" '$1 == "SHA256" && $2 == tok { print $4 }')"
   case "$_sha" in
     [0-9a-f][0-9a-f]*) : ;;  # non-empty, starts hex
@@ -46,7 +46,7 @@ build_libressl() {
   SDK="$(sh "$SHIPYARD/fetch_sdk.sh")"
   mkdir -p "$WORK"
   tb="$WORK/libressl-${LIBRESSL_VERSION}.tar.gz"
-  [ -f "$tb" ] || curl -fSL -o "$tb" "$LIBRESSL_BASE_URL/libressl-${LIBRESSL_VERSION}.tar.gz"
+  [ -f "$tb" ] || shipyard_curl "$LIBRESSL_BASE_URL/libressl-${LIBRESSL_VERSION}.tar.gz" "$tb"
   verify_libressl_tarball "$tb" "$(libressl_expected_sha)"
   rm -rf "$WORK/libressl-${LIBRESSL_VERSION}"
   tar -C "$WORK" -xzf "$tb"
@@ -72,4 +72,5 @@ case "${1:-}" in
   --source-only) return 0 2>/dev/null || exit 0 ;;
 esac
 . "$(cd "$(dirname "$0")" && pwd)/versions.sh"
+. "$SHIPYARD_SCRIPTS/mavericks_fetch.sh"
 build_libressl

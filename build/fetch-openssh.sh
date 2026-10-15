@@ -27,8 +27,8 @@ fetch_openssh() {
   mirror="https://ftp.openbsd.org/pub/OpenBSD/OpenSSH/portable"
   tb="$(openssh_tarball_name "$OPENSSH_VERSION")"
   mkdir -p "$WORK"
-  [ -f "$WORK/$tb" ]     || curl -fSL -o "$WORK/$tb"     "$mirror/$tb"
-  [ -f "$WORK/$tb.asc" ] || curl -fSL -o "$WORK/$tb.asc" "$mirror/$tb.asc"
+  [ -f "$WORK/$tb" ]     || shipyard_curl "$mirror/$tb" "$WORK/$tb"
+  [ -f "$WORK/$tb.asc" ] || shipyard_curl "$mirror/$tb.asc" "$WORK/$tb.asc"
   verify_openssh_signature "$WORK/$tb" "$WORK/$tb.asc"
   shasum -a 256 "$WORK/$tb" >> "${SHA256SUMS:-$WORK/SHA256SUMS}"
   rm -rf "$WORK/openssh-${OPENSSH_VERSION}"
@@ -41,4 +41,5 @@ case "${1:-}" in
   --source-only) return 0 2>/dev/null || exit 0 ;;
 esac
 . "$(cd "$(dirname "$0")" && pwd)/versions.sh"
+. "$SHIPYARD_SCRIPTS/mavericks_fetch.sh"
 fetch_openssh
