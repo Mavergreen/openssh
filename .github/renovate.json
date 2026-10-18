@@ -18,7 +18,7 @@
       "matchStrings": ["LIBRESSL_VERSION=(?<currentValue>\\S+)\\s+# renovate: libressl/portable"],
       "depNameTemplate": "libressl/portable",
       "datasourceTemplate": "github-tags",
-      "extractVersionTemplate": "^v?(?<version>.+)$"
+      "extractVersionTemplate": "^v(?<version>.+)$"
     }
   ]
 }
