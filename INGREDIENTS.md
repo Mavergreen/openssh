@@ -15,11 +15,20 @@ repackage via `repackage-on-ingredient-bump`.
 
 ## Provenance / credit
 
-`patches/*.patch` and `patches/keychain.{h,m}` restore Apple's Keychain and launchd
-integrations. They originate in **Apple's own OpenSSH**
+`patches/keychain.{h,m}` and every `patches/*.patch` but one (below) restore Apple's Keychain and
+launchd integrations. They originate in **Apple's own OpenSSH**
 (`github.com/apple-oss-distributions/OpenSSH`) and reached us via
 `github.com/Wowfunhappy/OpenSSH-Mavericks-Update`, which rebased them onto a 10.9-buildable
 OpenSSH. Thank you to Wowfunhappy.
+
+**`patches/sandbox-darwin-in-process.patch` is ours, not Apple's,** and nothing in Apple's tree
+supplies it, so a resync from Apple's tree must keep it. It makes sshd-auth apply its sandbox as a
+profile compiled in process, instead of upstream's builtin `kSBXProfilePureComputation`, whose
+application on 10.9 has launchd start sandboxd at a boot's first login. Apple's own approach
+(`SANDBOX_NAMED_EXTERNAL`, a profile file under `/System`) fails on every login here: sshd-auth has
+already chrooted to `/var/empty` when it applies the sandbox. Both were measured on 10.9.5, for
+packer-plugin-macosx's ADR 0033: there, a shutdown soon after a boot's first login waited ~19 s for
+the sandboxd that login started.
 
 **Apple's tree is the real upstream, and it IS versioned** — releases are tagged
 (`OpenSSH-354.120.2`, based on OpenSSH 10.2p1, at the 2026-09-13 sync). Diffing Apple's

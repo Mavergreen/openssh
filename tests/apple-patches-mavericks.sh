@@ -74,5 +74,27 @@ grep -q 'Invalid host key confirmation response from askpass' "$T/ssh.log" \
 asked="$(wc -l < "$T/askpass.count" | tr -d ' ')"
 [ "$asked" = 1 ] || fail "the askpass helper was asked $asked times, not once"
 
+# 4. sshd-auth's sandbox is the in-process profile, not the builtin pure-computation one, whose
+#    application has the kernel fetch it from sandboxd: launchd then starts sandboxd at a boot's first
+#    login, and a shutdown soon after waits for a job seconds old (packer-plugin-macosx's ADR 0033).
+#    Any login attempt gets as far as the sandbox: PreferredAuthentications=none fails after it. Its
+#    own port: check 3's sshd may not have exited yet.
+port=2224
+killall -9 sandboxd 2>/dev/null || true
+sleep 1
+if ps -axo comm= | grep -qx /usr/libexec/sandboxd; then fail "sandboxd was running again before the login: the check tells nothing"; fi
+"$SB/sshd" -ddd -p "$port" -o UsePAM=no -h "$T/hostkey" > "$T/sshd-sandbox.log" 2>&1 &
+pid=$!; sleep 2
+kill -0 "$pid" 2>/dev/null || fail "sshd -ddd exited before the client connected"
+within 30 "$B/ssh" -p "$port" -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+  -o GlobalKnownHostsFile=/dev/null -o PreferredAuthentications=none localhost true < /dev/null > "$T/ssh-sandbox.log" 2>&1 || true
+sleep 1; kill "$pid" 2>/dev/null || true
+if grep -q 'for the in-process sandbox' "$T/sshd-sandbox.log"; then fail "sshd-auth could not load libsandbox for the in-process profile"; fi
+grep -q 'starting Darwin sandbox' "$T/sshd-sandbox.log" || fail "sshd-auth never reached its sandbox: the check tells nothing"
+grep -q 'starting Darwin sandbox (in-process profile)' "$T/sshd-sandbox.log" \
+  || fail "sshd-auth applied the builtin sandbox profile, which starts sandboxd, not the in-process one"
+if grep -q 'sandbox_init(in-process profile):' "$T/sshd-sandbox.log"; then fail "sshd-auth could not apply the in-process profile"; fi
+if ps -axo comm= | grep -qx /usr/libexec/sandboxd; then fail "the login started sandboxd"; fi
+
 rm -rf "$T"
 echo "ok: the Apple patches' behaviours, on real 10.9"
