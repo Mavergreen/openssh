@@ -54,3 +54,5 @@ restores the saved originals. To remove OpenSSH for Mavericks entirely, run
 
 The Apple-integration patches originate from
 [Wowfunhappy/OpenSSH-Mavericks-Update](https://github.com/Wowfunhappy/OpenSSH-Mavericks-Update).
+`patches/sandbox-darwin-in-process.patch` is the family's own, not Apple's: it compiles sshd-auth's
+sandbox profile in process, so a login never makes launchd start sandboxd.

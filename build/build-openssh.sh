@@ -18,7 +18,11 @@ LIBRESSL="$(sh "$SELF/build-libressl.sh")"
 STAGE="${STAGE:-$WORK/staging}"
 rm -rf "$STAGE"; mkdir -p "$STAGE"
 
-APPLE_DEFS="-D__APPLE_KEYCHAIN__ -D__APPLE_MEMBERSHIP__ -D__APPLE_LAUNCHD__ -D__APPLE_SANDBOX_NAMED_EXTERNAL__"
+# __APPLE_SANDBOX_IN_PROCESS__: sandbox-darwin-in-process.patch. sshd-auth's sandbox is compiled in
+# process, so a login never makes launchd start sandboxd. (Apple's own -D__APPLE_SANDBOX_NAMED_EXTERNAL__
+# is not here: upstream has no such #ifdef, so it did nothing, and Apple's profile file it named cannot
+# be read after sshd-auth's chroot anyway.)
+APPLE_DEFS="-D__APPLE_KEYCHAIN__ -D__APPLE_MEMBERSHIP__ -D__APPLE_LAUNCHD__ -D__APPLE_SANDBOX_IN_PROCESS__"
 # We cross-build the x86_64 / 10.9 product on a modern arm64 runner, so the arch is explicit
 # (-arch x86_64) and configure runs in cross mode (--host) -- the 10.9 SDK is Intel-only, so a
 # default (arm64) compile "cannot create executables", and cross mode avoids needing to RUN

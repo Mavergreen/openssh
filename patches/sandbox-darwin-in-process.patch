@@ -1,0 +1,70 @@
+--- sandbox-darwin.c.original
++++ sandbox-darwin.c
+@@ -15,6 +15,9 @@
+  */
+ 
+ #include "includes.h"
++#ifdef __APPLE_SANDBOX_IN_PROCESS__
++#include <dlfcn.h>
++#endif
+ 
+ #ifdef SANDBOX_DARWIN
+ 
+@@ -40,6 +43,20 @@
+ 	int junk;
+ };
+ 
++#ifdef __APPLE_SANDBOX_IN_PROCESS__
++/*
++ * Applying the builtin kSBXProfilePureComputation (SANDBOX_NAMED) has the
++ * kernel fetch the profile from sandboxd, which launchd starts on demand:
++ * on 10.9, every boot's first login starts sandboxd, and a shutdown helper
++ * that waits for jobs still starting then waits ~19 s for it. This profile
++ * is compiled here, in this process, so nothing fetches it and no sandboxd
++ * starts. On the 20 operations measured on 10.9.5 it answers as the builtin
++ * does: both still allow socket(), so the rlimits below stay load-bearing.
++ */
++#define SSH_SANDBOX_PROFILE "(version 1) (deny default)"
++#define SSH_SANDBOX_LIB "/usr/lib/libsandbox.1.dylib"
++#endif
++
+ struct ssh_sandbox *
+ ssh_sandbox_init(struct monitor *monitor)
+ {
+@@ -51,6 +68,19 @@
+ 	 */
+ 	debug3_f("preparing Darwin sandbox");
+ 	box = xcalloc(1, sizeof(*box));
++#ifdef __APPLE_SANDBOX_IN_PROCESS__
++	/*
++	 * sandbox_init() compiles a string profile with libsandbox, which it
++	 * dlopen()s by path. ssh_sandbox_child() runs after the chroot to the
++	 * privsep directory, where that path does not exist, so it must
++	 * already be loaded. Security.framework loads it today; this makes the
++	 * dependency explicit, and a failure loud at the first login rather
++	 * than an "image not found" after the chroot.
++	 */
++	if (dlopen(SSH_SANDBOX_LIB, RTLD_NOW | RTLD_LOCAL) == NULL)
++		fatal_f("cannot load %s for the in-process sandbox: %s",
++		    SSH_SANDBOX_LIB, dlerror());
++#endif
+ 	return box;
+ }
+ 
+@@ -60,10 +90,16 @@
+ 	char *errmsg;
+ 	struct rlimit rl_zero;
+ 
++#ifdef __APPLE_SANDBOX_IN_PROCESS__
++	debug3_f("starting Darwin sandbox (in-process profile)");
++	if (sandbox_init(SSH_SANDBOX_PROFILE, 0, &errmsg) == -1)
++		fatal_f("sandbox_init(in-process profile): %s", errmsg);
++#else
+ 	debug3_f("starting Darwin sandbox");
+ 	if (sandbox_init(kSBXProfilePureComputation, SANDBOX_NAMED,
+ 	    &errmsg) == -1)
+ 		fatal_f("sandbox_init: %s", errmsg);
++#endif
+ 
+ 	/*
+ 	 * The kSBXProfilePureComputation still allows sockets, so

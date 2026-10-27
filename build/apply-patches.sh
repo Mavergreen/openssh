@@ -69,7 +69,7 @@ SELF="$(cd "$(dirname "$0")" && pwd)"
 P="$SELF/../patches"
 
 cp "$P/keychain.h" "$P/keychain.m" "$SRC/"
-for patch in ssh-add-keychain.patch ssh-agent-launchd.patch ssh-askpass-confirm.patch; do
+for patch in ssh-add-keychain.patch ssh-agent-launchd.patch ssh-askpass-confirm.patch sandbox-darwin-in-process.patch; do
   apply_one "$SRC" "$P/$patch" 0
 done
 add_keychain_object "$SRC"
