@@ -43,6 +43,7 @@ libressl_expected_sha() {
 
 build_libressl() {
   : "${WORK:?}"; : "${LIBRESSL_VERSION:?}"; : "${SHIPYARD:?}"
+  SDK="$(sh "$SHIPYARD/fetch_sdk.sh")"
   CLANG22="$(sh "$REPO_ROOT/build/fetch-clang22.sh")"
   mkdir -p "$WORK"
   tb="$WORK/libressl-${LIBRESSL_VERSION}.tar.gz"
@@ -52,11 +53,12 @@ build_libressl() {
   tar -C "$WORK" -xzf "$tb"
   # configure/make/make install emit to stdout; send it all to stderr so the ONLY thing this
   # function writes to stdout is the final prefix path (build-openssh.sh captures it).
-  # clang22's clang.cfg targets x86_64 Mac OS X 10.9 against its own 10.9 SDK; --host is cross mode,
-  # so configure never runs an x86_64 test binary (no Rosetta dependency).
+  # clang22's clang.cfg targets x86_64 Mac OS X 10.9; -isysroot names shipyard's pinned SDK, as in
+  # build-openssh.sh. --host is cross mode, so configure never runs an x86_64 test binary (no Rosetta).
   ( cd "$WORK/libressl-${LIBRESSL_VERSION}"
     CC="$CLANG22/bin/clang" AR="$CLANG22/bin/llvm-ar" RANLIB="$CLANG22/bin/llvm-ranlib" \
-    CFLAGS="-O2" \
+    CFLAGS="-isysroot $SDK -O2" \
+    LDFLAGS="-isysroot $SDK" \
     ./configure --host=x86_64-apple-darwin \
       --prefix="$WORK/libressl-install" --enable-static --disable-shared --disable-asm
     make -j"$(sysctl -n hw.ncpu)"

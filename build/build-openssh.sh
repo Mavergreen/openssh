@@ -3,12 +3,14 @@
 # Configure + build OpenSSH against the static LibreSSL and the pinned 10.9 SDK, re-adding the
 # Apple integrations, and stage into a DESTDIR laid out for /usr/local/mavergreen/openssh.
 # Cross-built on modern macOS in CI with the clang22 release components/clang22/version pins, whose
-# clang.cfg supplies the target, the 10.9 SDK and floor, and links librecaulk.a before -lSystem, so
-# Recaulk's fixes to 10.9 functions (pselect) reach every binary. POSIX /bin/sh.
+# clang.cfg supplies the target and floor, and links librecaulk.a before -lSystem, so Recaulk's fixes
+# to 10.9 functions (pselect) reach every binary. The SDK is shipyard's pinned one, by -isysroot.
+# POSIX /bin/sh.
 set -eu
 SELF="$(cd "$(dirname "$0")" && pwd)"
 . "$SELF/versions.sh"
 
+SDK="$(sh "$SHIPYARD/fetch_sdk.sh")"
 CLANG22="$(sh "$SELF/fetch-clang22.sh")"
 CC="$CLANG22/bin/clang"
 AR="$CLANG22/bin/llvm-ar"
@@ -26,12 +28,13 @@ rm -rf "$STAGE"; mkdir -p "$STAGE"
 # is not here: upstream has no such #ifdef, so it did nothing, and Apple's profile file it named cannot
 # be read after sshd-auth's chroot anyway.)
 APPLE_DEFS="-D__APPLE_KEYCHAIN__ -D__APPLE_MEMBERSHIP__ -D__APPLE_LAUNCHD__ -D__APPLE_SANDBOX_IN_PROCESS__"
-# clang22's clang.cfg targets x86_64 Mac OS X 10.9 against its own 10.9 SDK; configure runs in cross
-# mode (--host), so it never needs to RUN an x86_64 test binary (no Rosetta dependency).
+# clang22's clang.cfg targets x86_64 Mac OS X 10.9. Its default sysroot is an SDK wired in by its
+# setup-sdk, a python3 script 10.9 cannot run, so -isysroot names shipyard's pinned SDK on every host.
+# configure runs in cross mode (--host), so it never RUNs an x86_64 test binary (no Rosetta).
 ( cd "$SRC"
   CC="$CC" AR="$AR" RANLIB="$RANLIB" \
-  CFLAGS="-I$LIBRESSL/include $APPLE_DEFS" \
-  LDFLAGS="-L$LIBRESSL/lib -framework CoreFoundation -framework Security -framework DirectoryService -lbsm" \
+  CFLAGS="-isysroot $SDK -I$LIBRESSL/include $APPLE_DEFS" \
+  LDFLAGS="-isysroot $SDK -L$LIBRESSL/lib -framework CoreFoundation -framework Security -framework DirectoryService -lbsm" \
   ./configure \
     --host=x86_64-apple-darwin \
     --prefix="$PREFIX" --sysconfdir="$SYSCONFDIR" \
