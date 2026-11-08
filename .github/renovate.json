@@ -19,6 +19,15 @@
       "depNameTemplate": "libressl/portable",
       "datasourceTemplate": "github-tags",
       "extractVersionTemplate": "^v(?<version>.+)$"
+    },
+    {
+      "customType": "regex",
+      "description": "The clang22 toolchain that builds OpenSSH and LibreSSL: a Mavergreen/clang-22 release tag, bare. Its clang.cfg links librecaulk.a, so a bump carries Recaulk's fixes into the binaries (INGREDIENTS.md).",
+      "managerFilePatterns": ["/^components/clang22/version$/"],
+      "matchStrings": ["^(?<currentValue>\\S+)\\s*$"],
+      "depNameTemplate": "Mavergreen/clang-22",
+      "datasourceTemplate": "github-releases",
+      "versioningTemplate": "regex:^(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)-mavericks\\.(?<build>\\d+)$"
     }
   ]
 }

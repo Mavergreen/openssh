@@ -1,15 +1,20 @@
 #!/bin/sh
-# platform: macOS-only -- builds against fetch_sdk.sh's pinned Apple SDK and reads sysctl hw.ncpu
+# platform: macOS-only -- reads sysctl hw.ncpu, and clang22's pkg needs a Mac to expand
 # Configure + build OpenSSH against the static LibreSSL and the pinned 10.9 SDK, re-adding the
 # Apple integrations, and stage into a DESTDIR laid out for /usr/local/mavergreen/openssh.
-# Cross-built on modern macOS in CI; targets 10.9 via -isysroot <SDK> + -mmacosx-version-min=10.9
-# and Apple clang (/usr/bin/clang) for the ObjC keychain code. POSIX /bin/sh.
+# Cross-built on modern macOS in CI with the clang22 release components/clang22/version pins, whose
+# clang.cfg supplies the target and floor, and links librecaulk.a before -lSystem, so Recaulk's fixes
+# to 10.9 functions (pselect) reach every binary. The SDK is shipyard's pinned one, by -isysroot.
+# POSIX /bin/sh.
 set -eu
 SELF="$(cd "$(dirname "$0")" && pwd)"
 . "$SELF/versions.sh"
 
 SDK="$(sh "$SHIPYARD/fetch_sdk.sh")"
-CC=/usr/bin/clang        # Apple clang: required for ObjC (keychain.m) + blocks
+CLANG22="$(sh "$SELF/fetch-clang22.sh")"
+CC="$CLANG22/bin/clang"
+AR="$CLANG22/bin/llvm-ar"
+RANLIB="$CLANG22/bin/llvm-ranlib"
 
 SRC="$(sh "$SELF/fetch-openssh.sh")"
 sh "$SELF/apply-patches.sh" "$SRC"
@@ -23,14 +28,13 @@ rm -rf "$STAGE"; mkdir -p "$STAGE"
 # is not here: upstream has no such #ifdef, so it did nothing, and Apple's profile file it named cannot
 # be read after sshd-auth's chroot anyway.)
 APPLE_DEFS="-D__APPLE_KEYCHAIN__ -D__APPLE_MEMBERSHIP__ -D__APPLE_LAUNCHD__ -D__APPLE_SANDBOX_IN_PROCESS__"
-# We cross-build the x86_64 / 10.9 product on a modern arm64 runner, so the arch is explicit
-# (-arch x86_64) and configure runs in cross mode (--host) -- the 10.9 SDK is Intel-only, so a
-# default (arm64) compile "cannot create executables", and cross mode avoids needing to RUN
-# x86_64 test binaries (no Rosetta dependency).
+# clang22's clang.cfg targets x86_64 Mac OS X 10.9. Its default sysroot is an SDK wired in by its
+# setup-sdk, a python3 script 10.9 cannot run, so -isysroot names shipyard's pinned SDK on every host.
+# configure runs in cross mode (--host), so it never RUNs an x86_64 test binary (no Rosetta).
 ( cd "$SRC"
-  CC="$CC" \
-  CFLAGS="-arch x86_64 -mmacosx-version-min=10.9 -isysroot $SDK -I$LIBRESSL/include $APPLE_DEFS" \
-  LDFLAGS="-arch x86_64 -mmacosx-version-min=10.9 -isysroot $SDK -L$LIBRESSL/lib -framework CoreFoundation -framework Security -framework DirectoryService -lbsm" \
+  CC="$CC" AR="$AR" RANLIB="$RANLIB" \
+  CFLAGS="-isysroot $SDK -I$LIBRESSL/include $APPLE_DEFS" \
+  LDFLAGS="-isysroot $SDK -L$LIBRESSL/lib -framework CoreFoundation -framework Security -framework DirectoryService -lbsm" \
   ./configure \
     --host=x86_64-apple-darwin \
     --prefix="$PREFIX" --sysconfdir="$SYSCONFDIR" \

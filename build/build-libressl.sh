@@ -1,5 +1,5 @@
 #!/bin/sh
-# platform: macOS-only -- builds against fetch_sdk.sh's pinned Apple SDK and reads sysctl hw.ncpu
+# platform: macOS-only -- reads sysctl hw.ncpu, and clang22's pkg needs a Mac to expand
 # Build LibreSSL portable as a STATIC library against the pinned 10.9 SDK, into a build-local
 # prefix, for OpenSSH to link. Fetches upstream's own published SHA256 for the pinned version and
 # verifies against it. Sourced with --source-only to expose functions to tests. POSIX /bin/sh.
@@ -44,6 +44,7 @@ libressl_expected_sha() {
 build_libressl() {
   : "${WORK:?}"; : "${LIBRESSL_VERSION:?}"; : "${SHIPYARD:?}"
   SDK="$(sh "$SHIPYARD/fetch_sdk.sh")"
+  CLANG22="$(sh "$REPO_ROOT/build/fetch-clang22.sh")"
   mkdir -p "$WORK"
   tb="$WORK/libressl-${LIBRESSL_VERSION}.tar.gz"
   [ -f "$tb" ] || shipyard_curl "$LIBRESSL_BASE_URL/libressl-${LIBRESSL_VERSION}.tar.gz" "$tb"
@@ -52,12 +53,12 @@ build_libressl() {
   tar -C "$WORK" -xzf "$tb"
   # configure/make/make install emit to stdout; send it all to stderr so the ONLY thing this
   # function writes to stdout is the final prefix path (build-openssh.sh captures it).
-  # Cross-build x86_64/10.9 on a modern arm64 runner: -arch x86_64 (the 10.9 SDK is Intel-only, so
-  # a default arm64 compile "cannot create executables") + --host (cross mode: don't run x86_64
-  # test binaries; no Rosetta dependency).
+  # clang22's clang.cfg targets x86_64 Mac OS X 10.9; -isysroot names shipyard's pinned SDK, as in
+  # build-openssh.sh. --host is cross mode, so configure never runs an x86_64 test binary (no Rosetta).
   ( cd "$WORK/libressl-${LIBRESSL_VERSION}"
-    CFLAGS="-arch x86_64 -mmacosx-version-min=10.9 -isysroot $SDK -O2" \
-    LDFLAGS="-arch x86_64 -mmacosx-version-min=10.9 -isysroot $SDK" \
+    CC="$CLANG22/bin/clang" AR="$CLANG22/bin/llvm-ar" RANLIB="$CLANG22/bin/llvm-ranlib" \
+    CFLAGS="-isysroot $SDK -O2" \
+    LDFLAGS="-isysroot $SDK" \
     ./configure --host=x86_64-apple-darwin \
       --prefix="$WORK/libressl-install" --enable-static --disable-shared --disable-asm
     make -j"$(sysctl -n hw.ncpu)"

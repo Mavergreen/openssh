@@ -1,8 +1,8 @@
 name: repackage-on-ingredient-bump
 
-# When LibreSSL, the vendored patches, or our own sshd-keygen-wrapper change (not the OpenSSH
-# upstream), dispatch a -mavericks.(N+1) repackage via the shared reusable workflow. The OpenSSH
-# upstream itself is the N=1 auto-cut path in release.yml (push to main), so it's excluded here.
+# When LibreSSL, clang22 (whose clang.cfg links Recaulk's fixes in), the vendored patches, or our own
+# sshd-keygen-wrapper change (not the OpenSSH upstream), dispatch a -mavericks.(N+1) repackage via the
+# shared reusable workflow. The OpenSSH upstream itself is the N=1 auto-cut path in release.yml (push to main), so it's excluded here.
 #
 # Every path here must be an ingredient in INGREDIENTS.md and vice versa: the notes generator
 # derives which ingredient moved from this list, so a pin documented as an ingredient but missing
@@ -13,6 +13,7 @@ on:
     branches: [main]
     paths:
       - build/versions.sh
+      - components/clang22/version
       - patches/**
       - scripts/sshd-keygen-wrapper.in
 
